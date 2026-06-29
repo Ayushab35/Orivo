@@ -65,7 +65,7 @@ export default function Packages() {
         <Pressable onPress={() => router.back()} style={{ marginBottom: 14 }}>
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>BOOK A SESSION</Text>
+        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>PRIVATE CONSULTATION</Text>
         <Text style={{ color: c.textPrimary, fontSize: 28, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 16 }}>
           Choose a package.
         </Text>
@@ -86,7 +86,7 @@ export default function Packages() {
               }}
             >
               <Text style={{ color: mode === m ? c.textPrimary : c.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                {m === 'pay' ? 'Pay now' : `Use credits (${Math.floor(creditsBalanceSec / 60)} min)`}
+                {m === 'pay' ? 'Pay now' : `Use minutes (${Math.floor(creditsBalanceSec / 60)})`}
               </Text>
             </Pressable>
           ))}
@@ -125,14 +125,14 @@ export default function Packages() {
                   )}
                 </View>
               </View>
-              {insufficient && <Text style={{ color: c.terracotta, fontSize: 11, marginTop: 6 }}>Insufficient credits</Text>}
+              {insufficient && <Text style={{ color: c.terracotta, fontSize: 11, marginTop: 6 }}>Insufficient minutes</Text>}
             </Pressable>
           );
         })}
 
         <Button
           testID="pkg-continue-btn"
-          label={mode === 'pay' ? 'Continue to payment' : canUseCredits ? 'Choose a slot' : 'Insufficient credits'}
+          label={mode === 'pay' ? 'Continue to payment' : canUseCredits ? 'Choose a slot' : 'Insufficient minutes'}
           onPress={proceed}
           disabled={!selPkg || (mode === 'credits' && !canUseCredits)}
           loading={busy}
@@ -141,7 +141,7 @@ export default function Packages() {
         />
 
         <Text style={{ color: c.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 14, lineHeight: 18 }}>
-          Both paths always available. Earn credits through reflection — or simply pay. We don't force the grind.
+          Both paths always available. Earn minutes through reflection — or simply pay.
         </Text>
         <Disclaimer />
       </ScrollView>

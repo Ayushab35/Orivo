@@ -1,0 +1,50 @@
+{
+  "summary": "Full backend + frontend regression of ORIVO's Decision Intelligence repositioning. Added 9 new pytest cases for dashboard/advisor/decisions endpoints. 28/29 backend tests pass (1 intentionally skipped). Frontend onboarding -> login -> OTP verify -> birth-details -> dashboard flow verified end-to-end. New Dashboard, Insights, Advisor, Profile, Outlook, Numerology, Packages, Quiz screens all render with correct business vocabulary, dark-first palette, and required testIDs. Advisor LLM chat returns real Claude replies with no forbidden astrology vocabulary. Vocabulary lint across 7 screens: 0 forbidden words, 0 legacy labels.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Onboarding card 1", "issues": ["Copy reads 'not your horoscope' — although used in a negation/positioning sense, the word 'horoscope' is technically part of the forbidden vocabulary per spec. Consider replacing with 'not your daily prediction' or similar if the rule is strict."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Remove the word 'horoscope' from onboarding screen 1 copy if the no-zodiac-vocab rule is strictly enforced (currently used as negation 'not your horoscope').",
+    "OPTIONAL: Add data-testid attributes (tab-dashboard, tab-insights, tab-advisor, tab-profile) to the bottom tab buttons in app/(tabs)/_layout.tsx for easier automated tab navigation. Tabs render visibly with labels but no testIDs on the buttons themselves."
+  ],
+  "critical_code_review_comments": [
+    "decision_intel.py: PHASE rotation uses ((days % 480) + 480) % 480 -> phase_idx = cycle // 120. With cycle in [0,479] and integer division, phase_idx is always in [0,3] -> safe. Good.",
+    "server.py /dashboard/today: cache lookup uses {userId}:{date} string as _id and short-circuits before regenerating — correct idempotency.",
+    "advisor_reply replays full user history each call via repeated send_message — this works but each new chat call re-pays for previous user-turn tokens; consider passing history as a single context string for cost efficiency.",
+    "advisor_reply session_id = f'orivo-advisor-{user._id}' is per-user (not per-session). Two parallel sessions for the same user would share the same emergentintegrations chat memory; consider including sessionId.",
+    "Daily Brief fallback string includes Cormorant/serif heuristics correctly; LLM path validates 40<len<800 to avoid junk."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added 9 new tests covering /dashboard/today caching+vocab, /advisor/chat with session continuation + history + auth gate + min-length, /decisions create+list)"
+  ],
+  "success_rate": {"backend": "100% (28/28 executed, 1 intentional skip)", "frontend": "100% on critical flows"},
+  "test_credentials": "Phone OTP: any phone, code 123456 (DEV_OTP_BYPASS=true). Token used for UI testing stored in localStorage key 'orivo.token'.",
+  "seed_data_creation": "Each backend test run creates a fresh phone user (+1555<epoch>) and posts birth-details. UI test created one additional user with phone +15552717049. Test decision row prefixed 'TEST_' for cleanup identification.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 28 backend tests passing including new decision intel endpoints. The fixture chain depends on test ordering — pytest._orivo_session is mutated across test_advisor_chat_first_message -> test_advisor_chat_continues_history -> test_advisor_history; do not reorder these. Vocabulary check (FORBIDDEN_VOCAB) is enforced on /advisor/chat and /dashboard/today brief. To reach the dashboard in browser tests, set window.localStorage.setItem('orivo.token', <jwt>) and navigate to /dashboard. AsyncStorage in web is backed by localStorage with the key 'orivo.token'. The dashboard /dashboard/today response is cached per user+day; second call returns same id and the same brief text.",
+  "verified_flows": [
+    "Onboarding (3 cards) -> /login -> /verify -> /birth-details -> /dashboard",
+    "Dashboard: greeting, executive tier badge, MinutesPill, notif bell, DecisionScoreCard (61/100), PhaseCard (Consolidation, 67 days left), PeakWindowCard (07:00-08:45 AM), BriefCard (LLM-generated), Quick Insights (Leadership/Wealth/Assets/Market/Edge/Numeric), disclaimer-line",
+    "Insights: grouped Leadership / Business Intelligence / Timing / Identity with new business labels",
+    "Advisor: 4 suggestion chips, input, send, user bubble + Thinking placeholder + real Claude reply",
+    "Profile: 4 tabs all clickable; Membership tab shows 5min big number + banking-style activity; Preferences tab has theme-switch (toggles without crash)",
+    "/outlook: title 'DAILY BRIEF', sections 'PEAK DECISION WINDOWS' and 'DEFENSIVE WINDOWS' with Add-to-calendar buttons",
+    "/numerology: title 'NUMERICAL INTELLIGENCE'; cards LIFE PATH, EXECUTIVE NUMBER, STRATEGIC COLOR, STRATEGIC DATES, OPERATING GRID (all new vocabulary)",
+    "/packages: title 'PRIVATE CONSULTATION', toggle 'Pay now / Use minutes (5)'",
+    "/reports/personality-quiz: title 'LEADERSHIP ASSESSMENT'"
+  ],
+  "rca of the issue": "No bugs to RCA. All review-request features verified working."
+}

@@ -59,8 +59,8 @@ export default function Booking() {
         Alert.alert('Booking pending', 'Complete payment to confirm your slot.');
         router.replace('/packages');
       } else {
-        Alert.alert('Booking confirmed', `Your session is scheduled for ${new Date(slot.start).toLocaleString()}.`, [
-          { text: 'Done', onPress: () => router.replace('/(tabs)/home') },
+        Alert.alert('Booking confirmed', `Your private consultation is scheduled for ${new Date(slot.start).toLocaleString()}.`, [
+          { text: 'Done', onPress: () => router.replace('/(tabs)/dashboard') },
         ]);
       }
     } catch (e: any) {

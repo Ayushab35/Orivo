@@ -36,5 +36,5 @@ export default function Splash() {
 
   if (!user) return <Redirect href="/onboarding" />;
   if (!user.onboarded) return <Redirect href="/birth-details" />;
-  return <Redirect href="/(tabs)/home" />;
+  return <Redirect href="/(tabs)/dashboard" />;
 }

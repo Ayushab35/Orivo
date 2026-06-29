@@ -8,19 +8,19 @@ import { fontFamily, radii } from '../lib/theme';
 
 const CARDS = [
   {
-    kicker: 'A PRIVATE ROOM',
-    title: 'Decision support built for the corner office.',
-    body: 'Discreet, executive-grade insight — not a horoscope. Read patterns in your leadership style, timing, and posture.',
+    kicker: 'DECISION INTELLIGENCE',
+    title: 'Bloomberg for your personal decision making.',
+    body: 'Calm, objective, private. Read your leadership style, timing, and posture — not your horoscope.',
   },
   {
     kicker: 'TIMING THAT COMPOUNDS',
-    title: 'Know your favorable windows before the day starts.',
-    body: 'Daily favorable and caution windows, tuned to your birth chart. Add the right hour to your calendar in one tap.',
+    title: 'Know your peak decision windows before the day begins.',
+    body: 'A daily decision index, a current leadership phase, and the precise hours when your judgement is sharpest.',
   },
   {
     kicker: 'ON YOUR TERMS',
-    title: 'Earn time. Spend it on counsel — never forced.',
-    body: 'Credits are literal minutes with a senior advisor. Earn them through reflection tasks or buy a session outright.',
+    title: 'An AI Advisor, on call. Private minutes when you need counsel.',
+    body: 'Frame your hardest decisions against your patterns. Spend minutes with a senior advisor when stakes are real.',
   },
 ];
 

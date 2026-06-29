@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useTheme } from '../lib/themeContext';
-import { radii } from '../lib/theme';
+import { radii, fontFamily } from '../lib/theme';
 
 export function TierBadge({ tier, testID }: { tier?: string; testID?: string }) {
   const { c } = useTheme();
@@ -14,20 +14,20 @@ export function TierBadge({ tier, testID }: { tier?: string; testID?: string }) 
         alignItems: 'center',
         gap: 6,
         paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingVertical: 4,
         borderRadius: radii.pill,
-        backgroundColor: 'rgba(189,139,46,0.14)',
-        borderColor: c.gold,
+        backgroundColor: 'rgba(201,169,97,0.10)',
+        borderColor: 'rgba(201,169,97,0.35)',
         borderWidth: 1,
       }}
     >
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.gold }} />
+      <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: c.gold }} />
       <Text style={{ color: c.gold, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 }}>{label}</Text>
     </View>
   );
 }
 
-export function CreditPill({ seconds, testID }: { seconds: number; testID?: string }) {
+export function MinutesPill({ seconds, testID }: { seconds: number; testID?: string }) {
   const { c } = useTheme();
   const mm = Math.floor((seconds || 0) / 60);
   return (
@@ -45,8 +45,8 @@ export function CreditPill({ seconds, testID }: { seconds: number; testID?: stri
         borderWidth: 1,
       }}
     >
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.gold }} />
-      <Text style={{ color: c.textPrimary, fontSize: 12, fontWeight: '600', letterSpacing: 0.5 }}>{mm} min</Text>
+      <Text style={{ color: c.gold, fontFamily: fontFamily.mono, fontSize: 12, fontWeight: '700' }}>{mm}</Text>
+      <Text style={{ color: c.textSecondary, fontSize: 10, letterSpacing: 1.4, textTransform: 'uppercase' }}>min</Text>
     </View>
   );
 }

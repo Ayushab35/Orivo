@@ -16,6 +16,13 @@ from db import db, ensure_indexes
 from auth_utils import create_token, get_current_user_id
 from astrology import compute_daily_outlook, numerology_profile
 from llm_service import generate_report
+from decision_intel import (
+    decision_index,
+    leadership_phase,
+    peak_decision_window,
+    generate_daily_brief,
+    advisor_reply,
+)
 from seed_data import PACKAGES, TASKS
 
 load_dotenv()
@@ -594,6 +601,139 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
         if it.get("createdAt"):
             it["createdAt"] = it["createdAt"].isoformat()
     return {"items": items}
+
+
+# --------------------------- Dashboard (Decision Intelligence) ---------------------------
+
+class AdvisorChatBody(BaseModel):
+    message: str
+    sessionId: Optional[str] = None
+
+
+class DecisionLogBody(BaseModel):
+    title: str
+    context: Optional[str] = None
+    decision: Optional[str] = None
+
+
+@api.get("/dashboard/today")
+async def dashboard_today(user_id: str = Depends(get_current_user_id)):
+    user = await db.users.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    today = date.today()
+
+    # Read or generate cached brief
+    cache_key = f"{user_id}:{today.isoformat()}"
+    existing = await db.daily_briefs.find_one({"_id": cache_key})
+    if existing:
+        existing["id"] = existing.pop("_id")
+        return existing
+
+    idx = decision_index(user.get("birth"), today)
+    phase = leadership_phase(user.get("birth"), today)
+    window = peak_decision_window(user.get("birth"), today)
+    brief = await generate_daily_brief(user, idx, phase, window)
+
+    doc = {
+        "_id": cache_key,
+        "userId": user_id,
+        "date": today.isoformat(),
+        "decisionIndex": idx,
+        "phase": phase,
+        "peakWindow": window,
+        "brief": brief,
+        "generatedAt": _now().isoformat(),
+    }
+    try:
+        await db.daily_briefs.insert_one(doc)
+    except Exception:
+        pass
+    doc["id"] = doc.pop("_id")
+    return doc
+
+
+@api.post("/advisor/chat")
+async def advisor_chat(body: AdvisorChatBody, user_id: str = Depends(get_current_user_id)):
+    user = await db.users.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    if not body.message or len(body.message.strip()) < 2:
+        raise HTTPException(400, "Message too short")
+
+    session_id = body.sessionId or str(uuid.uuid4())
+    history_cur = db.advisor_messages.find({"sessionId": session_id}).sort("createdAt", 1).limit(20)
+    history = await history_cur.to_list(length=20)
+    formatted = [{"role": h["role"], "content": h["content"]} for h in history]
+
+    user_msg = {
+        "_id": str(uuid.uuid4()),
+        "userId": user_id,
+        "sessionId": session_id,
+        "role": "user",
+        "content": body.message.strip(),
+        "createdAt": _now(),
+    }
+    await db.advisor_messages.insert_one(user_msg)
+
+    reply = await advisor_reply({**user, "_id": user_id}, formatted, body.message.strip())
+    asst_msg = {
+        "_id": str(uuid.uuid4()),
+        "userId": user_id,
+        "sessionId": session_id,
+        "role": "assistant",
+        "content": reply,
+        "createdAt": _now(),
+    }
+    await db.advisor_messages.insert_one(asst_msg)
+
+    return {
+        "sessionId": session_id,
+        "reply": reply,
+        "messageId": asst_msg["_id"],
+    }
+
+
+@api.get("/advisor/history")
+async def advisor_history(sessionId: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
+    query = {"userId": user_id}
+    if sessionId:
+        query["sessionId"] = sessionId
+    cur = db.advisor_messages.find(query).sort("createdAt", 1).limit(100)
+    items = await cur.to_list(length=100)
+    for it in items:
+        it["id"] = it.pop("_id")
+        if it.get("createdAt"):
+            it["createdAt"] = it["createdAt"].isoformat()
+    return {"items": items, "sessionId": sessionId}
+
+
+@api.get("/decisions")
+async def list_decisions(user_id: str = Depends(get_current_user_id)):
+    cur = db.decisions.find({"userId": user_id}).sort("createdAt", -1).limit(20)
+    items = await cur.to_list(length=20)
+    for it in items:
+        it["id"] = it.pop("_id")
+        if it.get("createdAt"):
+            it["createdAt"] = it["createdAt"].isoformat()
+    return {"items": items}
+
+
+@api.post("/decisions")
+async def log_decision(body: DecisionLogBody, user_id: str = Depends(get_current_user_id)):
+    doc = {
+        "_id": str(uuid.uuid4()),
+        "userId": user_id,
+        "title": body.title.strip(),
+        "context": (body.context or "").strip(),
+        "decision": (body.decision or "").strip(),
+        "createdAt": _now(),
+    }
+    await db.decisions.insert_one(doc)
+    doc["id"] = doc.pop("_id")
+    if doc.get("createdAt"):
+        doc["createdAt"] = doc["createdAt"].isoformat()
+    return doc
 
 
 app.include_router(api)

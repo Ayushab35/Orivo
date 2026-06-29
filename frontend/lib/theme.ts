@@ -1,57 +1,83 @@
 export type ThemeName = 'light' | 'dark';
 
+/**
+ * Executive Decision Intelligence palette.
+ * Dark-first. Muted, calm, premium. No shiny gold, no purple, no astrology clichés.
+ */
 export const colors = {
+  dark: {
+    bg: '#0F111A',           // almost black
+    bgInset: '#0B0D14',
+    surface: '#1B2033',      // deep navy
+    surfaceAlt: '#232A42',
+    surfaceMuted: '#161A28',
+    primary: '#E8EAF2',      // off-white ink for cta-on-dark
+    primaryInk: '#0F111A',
+    teal: '#3FA68E',         // calm signal green
+    gold: '#C9A961',         // muted executive gold (not shiny)
+    goldInk: '#0F111A',
+    terracotta: '#C17A52',
+    textPrimary: '#F1F2F6',
+    textSecondary: '#8A8FA3',
+    textMuted: '#5A5F73',
+    border: '#262C40',
+    borderStrong: '#323954',
+    overlay: 'rgba(255,255,255,0.04)',
+    danger: '#D88271',
+    positive: '#3FA68E',
+    score: '#C9A961',
+    accent: '#7B8CFF',       // restrained analytical blue, used sparingly
+  },
   light: {
-    bg: '#FAF6EF',
+    // Kept for users who toggle, but designed to still feel reserved.
+    bg: '#F5F4EF',
+    bgInset: '#EDEBE2',
     surface: '#FFFFFF',
-    surfaceAlt: '#F4EFE2',
-    primary: '#1C2541',
+    surfaceAlt: '#F0EEE5',
+    surfaceMuted: '#FAF8F1',
+    primary: '#0F111A',
     primaryInk: '#FFFFFF',
     teal: '#0F6E56',
-    gold: '#BD8B2E',
+    gold: '#8B6A20',
     goldInk: '#FFFFFF',
     terracotta: '#C17A52',
-    textPrimary: '#2B2A28',
-    textSecondary: '#6E6A62',
-    border: '#E4DFD3',
-    overlay: 'rgba(28, 37, 65, 0.06)',
-    danger: '#C17A52',
-  },
-  dark: {
-    bg: '#11141F',
-    surface: '#1A1F30',
-    surfaceAlt: '#222840',
-    primary: '#E9ECF5',
-    primaryInk: '#11141F',
-    teal: '#3FB48E',
-    gold: '#D9A53D',
-    goldInk: '#11141F',
-    terracotta: '#D89271',
-    textPrimary: '#F4F1E8',
-    textSecondary: '#9C9684',
-    border: '#2D3447',
-    overlay: 'rgba(255, 255, 255, 0.04)',
-    danger: '#D89271',
+    textPrimary: '#15171F',
+    textSecondary: '#5A5F73',
+    textMuted: '#8A8FA3',
+    border: '#DCD8C9',
+    borderStrong: '#C8C3B0',
+    overlay: 'rgba(15,17,26,0.04)',
+    danger: '#B25538',
+    positive: '#0F6E56',
+    score: '#8B6A20',
+    accent: '#3C4A8C',
   },
 } as const;
 
-export type ThemeColors = (typeof colors)['light'];
+export type ThemeColors = (typeof colors)['dark'];
 
-export const radii = { sm: 8, md: 12, lg: 18, xl: 24, pill: 999 };
+export const radii = { sm: 8, md: 14, lg: 20, xl: 24, pill: 999 };
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 };
+
 export const fontFamily = {
-  // System fallbacks; deliberately not "Inter/Roboto". Use Georgia for display accents.
-  display: 'Georgia, "Iowan Old Style", "Apple Garamond", serif',
-  body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+  // Large elegant serif for hero headings (Bloomberg-meets-Apple); modern sans elsewhere.
+  display: '"Cormorant Garamond", "Iowan Old Style", Georgia, "Times New Roman", serif',
+  body: '"SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+  mono: '"JetBrains Mono", "SF Mono", ui-monospace, monospace',
 };
 
 export const elevation = {
   card: {
-    shadowColor: '#1C2541',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 1,
+  },
+  flat: {
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
   },
 };
 

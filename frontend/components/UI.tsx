@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, ViewStyle } from 'react-native';
+import { View, Text, ViewStyle, TextStyle } from 'react-native';
 import { useTheme } from '../lib/themeContext';
-import { radii, elevation, fontFamily } from '../lib/theme';
-import { DISCLAIMER } from '../lib/theme';
+import { radii, elevation, fontFamily, DISCLAIMER } from '../lib/theme';
 
-export function Card({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+export function Card({ children, style, padding = 18 }: { children: React.ReactNode; style?: ViewStyle; padding?: number }) {
   const { c } = useTheme();
   return (
     <View
@@ -14,7 +13,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: V
           borderRadius: radii.lg,
           borderColor: c.border,
           borderWidth: 1,
-          padding: 18,
+          padding,
         },
         elevation.card,
         style,
@@ -25,32 +24,76 @@ export function Card({ children, style }: { children: React.ReactNode; style?: V
   );
 }
 
-export function SectionTitle({ children, kicker }: { children: React.ReactNode; kicker?: string }) {
+export function FlatCard({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const { c } = useTheme();
   return (
-    <View style={{ marginBottom: 10 }}>
-      {kicker ? (
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>{kicker}</Text>
-      ) : null}
-      <Text style={{ color: c.textPrimary, fontSize: 22, fontFamily: fontFamily.display, fontWeight: '600' }}>{children}</Text>
+    <View
+      style={[
+        {
+          backgroundColor: c.surfaceMuted,
+          borderRadius: radii.md,
+          borderColor: c.border,
+          borderWidth: 1,
+          padding: 14,
+        },
+        style,
+      ]}
+    >
+      {children}
     </View>
   );
 }
 
-export function Pill({ label, tone = 'neutral', testID }: { label: string; tone?: 'neutral' | 'favorable' | 'caution' | 'gold'; testID?: string }) {
+export function Kicker({ children, color, style }: { children: React.ReactNode; color?: string; style?: TextStyle }) {
+  const { c } = useTheme();
+  return (
+    <Text style={[{ color: color || c.textSecondary, fontSize: 10, letterSpacing: 2.4, textTransform: 'uppercase', fontWeight: '600' }, style]}>
+      {children}
+    </Text>
+  );
+}
+
+export function H1({ children, style }: { children: React.ReactNode; style?: TextStyle }) {
+  const { c } = useTheme();
+  return (
+    <Text style={[{ color: c.textPrimary, fontSize: 32, fontFamily: fontFamily.display, fontWeight: '500', lineHeight: 38, letterSpacing: -0.5 }, style]}>
+      {children}
+    </Text>
+  );
+}
+
+export function H2({ children, style }: { children: React.ReactNode; style?: TextStyle }) {
+  const { c } = useTheme();
+  return (
+    <Text style={[{ color: c.textPrimary, fontSize: 22, fontFamily: fontFamily.display, fontWeight: '500', lineHeight: 28 }, style]}>{children}</Text>
+  );
+}
+
+export function Mono({ children, style }: { children: React.ReactNode; style?: TextStyle }) {
+  const { c } = useTheme();
+  return <Text style={[{ color: c.textPrimary, fontFamily: fontFamily.mono, fontSize: 12 }, style]}>{children}</Text>;
+}
+
+export function Pill({ label, tone = 'neutral', testID }: { label: string; tone?: 'neutral' | 'positive' | 'caution' | 'gold' | 'muted'; testID?: string }) {
   const { c } = useTheme();
   const map = {
-    neutral: { bg: c.surfaceAlt, fg: c.textPrimary },
-    favorable: { bg: 'rgba(15,110,86,0.12)', fg: c.teal },
-    caution: { bg: 'rgba(193,122,82,0.15)', fg: c.terracotta },
-    gold: { bg: 'rgba(189,139,46,0.15)', fg: c.gold },
+    neutral: { bg: c.surfaceAlt, fg: c.textPrimary, br: c.border },
+    positive: { bg: 'rgba(63,166,142,0.14)', fg: c.teal, br: 'rgba(63,166,142,0.35)' },
+    caution: { bg: 'rgba(193,122,82,0.16)', fg: c.terracotta, br: 'rgba(193,122,82,0.35)' },
+    gold: { bg: 'rgba(201,169,97,0.13)', fg: c.gold, br: 'rgba(201,169,97,0.35)' },
+    muted: { bg: 'transparent', fg: c.textMuted, br: c.border },
   } as const;
   const t = map[tone];
   return (
-    <View testID={testID} style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, backgroundColor: t.bg, borderRadius: radii.pill }}>
-      <Text style={{ color: t.fg, fontSize: 11, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>{label}</Text>
+    <View testID={testID} style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, backgroundColor: t.bg, borderRadius: radii.pill, borderWidth: 1, borderColor: t.br }}>
+      <Text style={{ color: t.fg, fontSize: 10, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</Text>
     </View>
   );
+}
+
+export function Divider() {
+  const { c } = useTheme();
+  return <View style={{ height: 1, backgroundColor: c.border, marginVertical: 14 }} />;
 }
 
 export function Disclaimer({ testID }: { testID?: string }) {
@@ -58,14 +101,19 @@ export function Disclaimer({ testID }: { testID?: string }) {
   return (
     <Text
       testID={testID || 'disclaimer-line'}
-      style={{ color: c.textSecondary, fontSize: 11, fontStyle: 'italic', textAlign: 'center', marginTop: 18, lineHeight: 16 }}
+      style={{ color: c.textMuted, fontSize: 11, textAlign: 'center', marginTop: 20, lineHeight: 16, letterSpacing: 0.3 }}
     >
       {DISCLAIMER}
     </Text>
   );
 }
 
-export function Divider() {
+export function StatRow({ label, value, valueColor, testID }: { label: string; value: string | number; valueColor?: string; testID?: string }) {
   const { c } = useTheme();
-  return <View style={{ height: 1, backgroundColor: c.border, marginVertical: 12 }} />;
+  return (
+    <View testID={testID} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 }}>
+      <Text style={{ color: c.textSecondary, fontSize: 12, letterSpacing: 0.3 }}>{label}</Text>
+      <Text style={{ color: valueColor || c.textPrimary, fontSize: 13, fontWeight: '600', fontFamily: c.bg ? undefined : undefined }}>{value}</Text>
+    </View>
+  );
 }

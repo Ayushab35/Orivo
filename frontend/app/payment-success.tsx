@@ -72,12 +72,12 @@ export default function PaymentSuccess() {
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: c.teal, alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
             <Text style={{ color: '#FFF', fontSize: 36 }}>✓</Text>
           </View>
-          <Text style={{ color: c.textPrimary, fontSize: 26, fontFamily: fontFamily.display, fontWeight: '600' }}>Credits added.</Text>
+          <Text style={{ color: c.textPrimary, fontSize: 26, fontFamily: fontFamily.display, fontWeight: '600' }}>Minutes added.</Text>
           <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 10, textAlign: 'center', lineHeight: 22, maxWidth: 320 }}>
-            Your minutes are in your wallet. Book a slot whenever you're ready — credits expire 90 days after earning.
+            Your private minutes are in your wallet. Book a slot whenever you're ready — minutes expire 90 days after issue.
           </Text>
           <Button testID="success-book-btn" label="Choose a slot" onPress={() => router.replace('/booking?packageId=executive_30&paymentMode=credits')} variant="gold" style={{ marginTop: 28, paddingHorizontal: 32 }} />
-          <Button testID="success-home-btn" label="Back to home" onPress={() => router.replace('/(tabs)/home')} variant="ghost" style={{ marginTop: 8 }} />
+          <Button testID="success-home-btn" label="Back to dashboard" onPress={() => router.replace('/(tabs)/dashboard')} variant="ghost" style={{ marginTop: 8 }} />
         </>
       )}
       {(status === 'expired' || status === 'timeout' || status === 'error') && (

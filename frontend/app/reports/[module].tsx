@@ -7,11 +7,11 @@ import { api } from '../../lib/api';
 import { ReportCard, ReportSection } from '../../components/ReportCard';
 
 const TITLES: Record<string, { kicker: string; title: string }> = {
-  personality: { kicker: 'PERSONALITY', title: 'How you operate.' },
-  strengths: { kicker: 'STRENGTHS & IMPROVEMENT', title: 'What you carry — and where to sharpen.' },
-  career: { kicker: 'CAREER', title: 'Your career-defining trait.' },
-  publicImage: { kicker: 'PUBLIC IMAGE', title: 'How the room reads you.' },
-  financialPatterns: { kicker: 'FINANCIAL PATTERNS', title: 'Money tendencies to watch.' },
+  personality: { kicker: 'LEADERSHIP PROFILE', title: 'How you operate.' },
+  strengths: { kicker: 'STRATEGIC ASSETS & GROWTH', title: 'What you carry. Where to sharpen.' },
+  career: { kicker: 'EXECUTIVE EDGE', title: 'Your career-defining trait.' },
+  publicImage: { kicker: 'MARKET PERCEPTION', title: 'How the room reads you.' },
+  financialPatterns: { kicker: 'WEALTH DYNAMICS', title: 'Revenue and expense patterns to watch.' },
 };
 
 export default function ReportScreen() {

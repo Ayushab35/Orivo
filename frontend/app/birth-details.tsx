@@ -77,7 +77,7 @@ export default function BirthDetails() {
         birthLng: city!.lng,
       });
       await refresh();
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/dashboard');
     } catch (e: any) {
       setErr(e.message || 'Failed to save');
     } finally {

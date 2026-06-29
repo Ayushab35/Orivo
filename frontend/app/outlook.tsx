@@ -46,20 +46,20 @@ export default function Outlook() {
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
 
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>TODAY'S OUTLOOK</Text>
+        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>DAILY BRIEF</Text>
         <Text style={{ color: c.textPrimary, fontSize: 28, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 18 }}>
           {data?.date ? new Date(data.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Today'}
         </Text>
 
         {loading ? <ActivityIndicator color={c.gold} /> : (
           <>
-            <Section title="Favorable windows" tone="fav" />
+            <Section title="Peak Decision Windows" tone="fav" />
             {(data?.favorable || []).map((w: any, i: number) => (
               <SlotCard key={`f${i}`} slot={w} tone="fav" onAdd={() => addToCalendar(w, 'fav')} testID={`fav-slot-${i}`} />
             ))}
 
             <View style={{ height: 14 }} />
-            <Section title="Caution windows" tone="caution" />
+            <Section title="Defensive Windows" tone="caution" />
             {(data?.caution || []).map((w: any, i: number) => (
               <SlotCard key={`c${i}`} slot={w} tone="caution" onAdd={() => addToCalendar(w, 'caution')} testID={`caution-slot-${i}`} />
             ))}

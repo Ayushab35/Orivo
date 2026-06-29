@@ -25,7 +25,7 @@ export default function Verify() {
       const res = await api.post('/auth/otp/verify', { phone, code });
       await signInWithToken(res.token, res.user);
       if (!res.user.onboarded) router.replace('/birth-details');
-      else router.replace('/(tabs)/home');
+      else router.replace('/(tabs)/dashboard');
     } catch (e: any) {
       setErr(e.message || 'Invalid code');
     } finally {

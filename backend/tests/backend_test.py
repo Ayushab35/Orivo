@@ -247,3 +247,130 @@ def test_notifications_seed(session, auth):
     assert r.status_code == 200
     items = r.json()["items"]
     assert len(items) >= 2
+
+
+# --- Decision Intelligence Dashboard ---
+FORBIDDEN_VOCAB = [
+    "astrology", "horoscope", "lucky", "destiny", "zodiac",
+    "nakshatra", "dasha", "yoga", "transit", "fortune",
+    "mystical", "spiritual",
+]
+
+
+def _has_forbidden(text: str) -> list:
+    """Return list of any forbidden words found (case-insensitive)."""
+    if not text:
+        return []
+    low = text.lower()
+    return [w for w in FORBIDDEN_VOCAB if w in low]
+
+
+def test_dashboard_today_structure_and_cache(session, auth):
+    r = session.get(f"{API}/dashboard/today", timeout=120)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    # Decision Index
+    di = d["decisionIndex"]
+    assert isinstance(di["score"], int) and 35 <= di["score"] <= 96
+    assert di["label"] and di["tone"] in ("positive", "neutral", "caution")
+    comp = di["components"]
+    for k in ("momentum", "clarity", "energy", "riskTolerance"):
+        assert k in comp and isinstance(comp[k], int)
+    assert isinstance(di["allowed"], list) and len(di["allowed"]) == 3
+    assert isinstance(di["avoid"], list) and len(di["avoid"]) == 2
+    # Phase
+    ph = d["phase"]
+    assert ph["label"] in ("Expansion", "Consolidation", "Recalibration", "Execution")
+    assert ph["cycleLength"] == 120
+    assert isinstance(ph["thesis"], str) and len(ph["thesis"]) > 5
+    assert 0 <= ph["daysIn"] < 120 and 0 < ph["daysRemaining"] <= 120
+    assert 0 <= ph["progressPct"] <= 100
+    # Peak window
+    pw = d["peakWindow"]
+    assert pw["start"] and pw["end"] and pw["confidence"]
+    # Brief
+    assert isinstance(d["brief"], str) and len(d["brief"]) > 20
+    bad = _has_forbidden(d["brief"])
+    assert not bad, f"Forbidden words in brief: {bad} | brief={d['brief']}"
+    # Caching: second call returns same id
+    r2 = session.get(f"{API}/dashboard/today", timeout=60)
+    assert r2.status_code == 200
+    d2 = r2.json()
+    assert d2.get("id") == d.get("id")
+
+
+def test_advisor_chat_first_message(session, auth):
+    r = session.post(
+        f"{API}/advisor/chat",
+        json={"message": "Should I raise prices 12% this quarter?"},
+        timeout=120,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body.get("sessionId") and body.get("messageId")
+    assert isinstance(body.get("reply"), str) and len(body["reply"]) > 10
+    bad = _has_forbidden(body["reply"])
+    assert not bad, f"Forbidden words in advisor reply: {bad}"
+    # Persist for next test
+    pytest._orivo_session = body["sessionId"]
+
+
+def test_advisor_chat_continues_history(session, auth):
+    sid = getattr(pytest, "_orivo_session", None)
+    assert sid, "Previous advisor test did not set session id"
+    r = session.post(
+        f"{API}/advisor/chat",
+        json={"message": "What about hiring a CFO instead?", "sessionId": sid},
+        timeout=120,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["sessionId"] == sid
+
+
+def test_advisor_history(session, auth):
+    sid = getattr(pytest, "_orivo_session", None)
+    assert sid
+    r = session.get(f"{API}/advisor/history", params={"sessionId": sid})
+    assert r.status_code == 200, r.text
+    items = r.json()["items"]
+    # At least 4 messages (2 user + 2 assistant)
+    assert len(items) >= 4
+    roles = [m["role"] for m in items]
+    assert "user" in roles and "assistant" in roles
+
+
+def test_advisor_chat_too_short(session, auth):
+    r = session.post(f"{API}/advisor/chat", json={"message": "a"})
+    assert r.status_code == 400
+
+
+def test_decisions_log_and_list(session, auth):
+    payload = {
+        "title": "TEST_ Raise series A",
+        "context": "Need 8M to extend runway 18 months.",
+        "decision": "Approach top-3 funds.",
+    }
+    r = session.post(f"{API}/decisions", json=payload)
+    assert r.status_code == 200, r.text
+    created = r.json()
+    assert created["title"] == payload["title"]
+    assert "id" in created
+    # List
+    r2 = session.get(f"{API}/decisions")
+    assert r2.status_code == 200
+    items = r2.json()["items"]
+    assert any(it["id"] == created["id"] for it in items)
+
+
+def test_dashboard_requires_auth(session):
+    fresh = requests.Session()
+    fresh.headers.update({"Content-Type": "application/json"})
+    r = fresh.get(f"{API}/dashboard/today")
+    assert r.status_code in (401, 403)
+
+
+def test_advisor_requires_auth(session):
+    fresh = requests.Session()
+    fresh.headers.update({"Content-Type": "application/json"})
+    r = fresh.post(f"{API}/advisor/chat", json={"message": "hello there"})
+    assert r.status_code in (401, 403)

@@ -29,7 +29,7 @@ export default function Numerology() {
         <Pressable testID="num-back" onPress={() => router.back()} style={{ marginBottom: 12 }}>
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>NUMEROLOGY HUB</Text>
+        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>NUMERICAL INTELLIGENCE</Text>
         <Text style={{ color: c.textPrimary, fontSize: 28, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 20 }}>
           Your numbers.
         </Text>
@@ -42,13 +42,13 @@ export default function Numerology() {
                 <Text testID="life-path" style={{ color: c.gold, fontSize: 46, fontFamily: fontFamily.display, fontWeight: '700', marginTop: 4 }}>{data?.lifePath}</Text>
               </Card>
               <Card style={{ flex: 1, alignItems: 'flex-start' }}>
-                <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5 }}>BIRTH NUMBER</Text>
+                <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5 }}>EXECUTIVE NUMBER</Text>
                 <Text style={{ color: c.gold, fontSize: 46, fontFamily: fontFamily.display, fontWeight: '700', marginTop: 4 }}>{data?.birthNumber}</Text>
               </Card>
             </View>
 
             <Card style={{ marginBottom: 14 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5 }}>LUCKY COLOR</Text>
+              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5 }}>STRATEGIC COLOR</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 }}>
                 <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: data?.luckyColor?.hex, borderWidth: 1, borderColor: c.border }} />
                 <View>
@@ -59,7 +59,7 @@ export default function Numerology() {
             </Card>
 
             <Card style={{ marginBottom: 14 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 10 }}>LUCKY DATES (NEXT 60 DAYS)</Text>
+              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 10 }}>STRATEGIC DATES (NEXT 60 DAYS)</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {(data?.luckyDates || []).map((d: string, i: number) => (
                   <View key={i} testID={`lucky-${i}`} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: radii.pill, backgroundColor: 'rgba(189,139,46,0.14)' }}>
@@ -70,7 +70,7 @@ export default function Numerology() {
             </Card>
 
             <Card style={{ marginBottom: 14 }}>
-              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 12 }}>LOSHU GRID</Text>
+              <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 12 }}>OPERATING GRID</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
                 {(data?.loshuGrid || []).map((cell: any, i: number) => (
                   <View

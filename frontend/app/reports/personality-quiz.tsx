@@ -52,7 +52,7 @@ export default function Quiz() {
           <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
             <Text style={{ color: c.textSecondary }}>← Back</Text>
           </Pressable>
-          <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>QUIZ RESULT</Text>
+          <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>ASSESSMENT RESULT</Text>
           <Text style={{ color: c.textPrimary, fontSize: 26, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 20, lineHeight: 34 }}>
             Your operating profile.
           </Text>
@@ -77,7 +77,7 @@ export default function Quiz() {
         <Pressable onPress={() => router.back()} style={{ marginBottom: 16 }}>
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>PERSONALITY QUIZ</Text>
+          <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>LEADERSHIP ASSESSMENT</Text>
         <Text style={{ color: c.textPrimary, fontSize: 26, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 24, lineHeight: 34 }}>
           5 questions. 60 seconds.
         </Text>

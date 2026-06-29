@@ -1,9 +1,9 @@
 import React from 'react';
 import { Pressable, Text, View, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
 import { useTheme } from '../lib/themeContext';
-import { radii, fontFamily } from '../lib/theme';
+import { radii } from '../lib/theme';
 
-type Variant = 'primary' | 'secondary' | 'gold' | 'ghost' | 'outline';
+type Variant = 'primary' | 'secondary' | 'gold' | 'ghost' | 'outline' | 'subtle';
 
 export function Button({
   label,
@@ -14,6 +14,7 @@ export function Button({
   style,
   textStyle,
   testID,
+  size = 'md',
   icon,
 }: {
   label: string;
@@ -24,6 +25,7 @@ export function Button({
   style?: ViewStyle;
   textStyle?: TextStyle;
   testID?: string;
+  size?: 'sm' | 'md';
   icon?: React.ReactNode;
 }) {
   const { c } = useTheme();
@@ -31,57 +33,51 @@ export function Button({
     variant === 'primary'
       ? c.primary
       : variant === 'secondary'
-      ? c.teal
+      ? c.surfaceAlt
       : variant === 'gold'
       ? c.gold
-      : variant === 'outline'
-      ? 'transparent'
+      : variant === 'subtle'
+      ? c.surfaceMuted
       : 'transparent';
   const fg =
-    variant === 'primary' ? c.primaryInk : variant === 'gold' ? c.goldInk : variant === 'secondary' ? '#FFFFFF' : c.primary;
-  const border = variant === 'outline' ? c.border : 'transparent';
+    variant === 'primary'
+      ? c.primaryInk
+      : variant === 'gold'
+      ? c.goldInk
+      : variant === 'outline' || variant === 'ghost' || variant === 'subtle' || variant === 'secondary'
+      ? c.textPrimary
+      : c.textPrimary;
+  const border = variant === 'outline' ? c.borderStrong : variant === 'secondary' ? c.border : 'transparent';
 
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: any) => [
         {
           backgroundColor: bg,
           borderColor: border,
-          borderWidth: variant === 'outline' ? 1 : 0,
-          paddingVertical: 14,
-          paddingHorizontal: 22,
+          borderWidth: variant === 'outline' || variant === 'secondary' ? 1 : 0,
+          paddingVertical: size === 'sm' ? 10 : 14,
+          paddingHorizontal: size === 'sm' ? 14 : 22,
           borderRadius: radii.pill,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
-          opacity: disabled ? 0.55 : pressed ? 0.85 : 1,
-          minHeight: 50,
+          opacity: disabled ? 0.45 : pressed ? 0.85 : hovered ? 0.95 : 1,
+          minHeight: size === 'sm' ? 38 : 48,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={fg} />
+        <ActivityIndicator color={fg} size="small" />
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {icon}
-          <Text
-            style={[
-              {
-                color: fg,
-                fontFamily: fontFamily.body,
-                fontSize: 15,
-                fontWeight: '600',
-                letterSpacing: 0.3,
-              },
-              textStyle,
-            ]}
-          >
-            {label}
-          </Text>
+          <Text style={[{ color: fg, fontSize: size === 'sm' ? 13 : 14, fontWeight: '600', letterSpacing: 0.3 }, textStyle]}>{label}</Text>
         </View>
       )}
     </Pressable>
