@@ -10,7 +10,7 @@ const CARDS = [
   {
     kicker: 'DECISION INTELLIGENCE',
     title: 'Bloomberg for your personal decision making.',
-    body: 'Calm, objective, private. Read your leadership style, timing, and posture — not your horoscope.',
+    body: 'Calm, objective, private. Read your leadership style, timing, and posture — translated into business language.',
   },
   {
     kicker: 'TIMING THAT COMPOUNDS',

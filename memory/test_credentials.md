@@ -3,19 +3,17 @@
 ## Phone OTP (Dev mode)
 - **Phone**: any phone number (e.g. `+15551234567`, `+19998887777`)
 - **OTP code**: `123456` (works for every phone)
-- Dev bypass enabled via `DEV_OTP_BYPASS=true` in `/app/backend/.env`. Twilio integration is stubbed; switch by setting `DEV_OTP_BYPASS=false` and providing TWILIO_* env vars later.
+- Dev bypass enabled via `DEV_OTP_BYPASS=true` in `/app/backend/.env`.
 
 ## Stripe
-- Test mode key already in env: `STRIPE_API_KEY=sk_test_emergent` (managed via emergentintegrations).
-- On checkout, use Stripe test card `4242 4242 4242 4242`, any future expiry, any CVC, any ZIP.
+- Test key in env: `STRIPE_API_KEY=sk_test_emergent` (managed via emergentintegrations).
 
-## Pre-seeded data for an onboarded test user
-Calling `POST /api/auth/birth-details` with the verified token sets the user up. Example payload:
+## Sample onboarded payload (for `POST /api/auth/birth-details`)
 ```json
 {
-  "name": "Test Founder",
+  "name": "Ayush Sharma",
   "role": "Founder / CEO",
-  "businessName": "Acme Capital",
+  "businessName": "Lumen Capital",
   "industry": "Technology",
   "birthDate": "1985-04-12",
   "birthTime": "07:42",
@@ -24,3 +22,8 @@ Calling `POST /api/auth/birth-details` with the verified token sets the user up.
   "birthLng": 72.87
 }
 ```
+
+## Pre-seeded test user (already onboarded after earlier sessions)
+- Phone: `+19998887777`, code `123456`
+- Name: Test Founder
+- Onboarded with sample birth details.

@@ -27,29 +27,33 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
+          tabBarButtonTestID: 'tab-dashboard',
           tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size - 2} color={color} />,
-        }}
+        } as any}
       />
       <Tabs.Screen
         name="insights"
         options={{
           title: 'Insights',
+          tabBarButtonTestID: 'tab-insights',
           tabBarIcon: ({ color, size }) => <Ionicons name="layers-outline" size={size - 2} color={color} />,
-        }}
+        } as any}
       />
       <Tabs.Screen
         name="advisor"
         options={{
           title: 'Advisor',
+          tabBarButtonTestID: 'tab-advisor',
           tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size - 2} color={color} />,
-        }}
+        } as any}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
+          tabBarButtonTestID: 'tab-profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size - 2} color={color} />,
-        }}
+        } as any}
       />
     </Tabs>
   );
