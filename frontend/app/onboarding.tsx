@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../lib/themeContext';
 import { Button } from '../components/Button';
 import { fontFamily, radii } from '../lib/theme';
+import { OnboardingHero } from '../components/OnboardingHero';
+import { FadeInUp } from '../components/Animated';
 
 const CARDS = [
   {
@@ -15,7 +17,7 @@ const CARDS = [
   {
     kicker: 'TIMING THAT COMPOUNDS',
     title: 'Know your peak decision windows before the day begins.',
-    body: 'A daily decision index, a current leadership phase, and the precise hours when your judgement is sharpest.',
+    body: 'A leadership phase, the precise hours when your judgement is sharpest, and an executive role best suited to you.',
   },
   {
     kicker: 'ON YOUR TERMS',
@@ -38,22 +40,24 @@ export default function Onboarding() {
   };
 
   const next = () => {
-    if (i < CARDS.length - 1) {
-      ref.current?.scrollTo({ x: (i + 1) * w, animated: true });
-    } else {
-      router.push('/login');
-    }
+    if (i < CARDS.length - 1) ref.current?.scrollTo({ x: (i + 1) * w, animated: true });
+    else router.push('/login');
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'bottom']}>
-      <View style={{ alignSelf: 'center', width: w, flex: 1, paddingHorizontal: 18, paddingTop: 24 }}>
+      <View style={{ alignSelf: 'center', width: w, flex: 1, paddingHorizontal: 18, paddingTop: 18 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ color: c.textPrimary, fontSize: 18, fontFamily: fontFamily.display, fontWeight: '600', letterSpacing: 3 }}>ORIVO</Text>
+          <Text style={{ color: c.textPrimary, fontSize: 16, fontFamily: fontFamily.display, fontWeight: '600', letterSpacing: 3 }}>ORIVO</Text>
           <Pressable testID="onboarding-skip" onPress={() => router.push('/login')}>
             <Text style={{ color: c.textSecondary, fontSize: 13 }}>Skip</Text>
           </Pressable>
         </View>
+
+        {/* Hero animation */}
+        <FadeInUp index={0} style={{ alignItems: 'center', marginTop: 24, marginBottom: 8 }}>
+          <OnboardingHero size={Math.min(w - 100, 260)} />
+        </FadeInUp>
 
         <ScrollView
           ref={ref}
@@ -62,33 +66,34 @@ export default function Onboarding() {
           showsHorizontalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          style={{ flex: 1, marginTop: 30 }}
+          style={{ flex: 1 }}
         >
           {CARDS.map((card, idx) => (
-            <View key={idx} style={{ width: w - 36, paddingHorizontal: 6, justifyContent: 'center' }}>
+            <View key={idx} style={{ width: w - 36, paddingHorizontal: 6, paddingTop: 12 }}>
               <View
                 style={{
                   backgroundColor: c.surface,
                   borderRadius: radii.xl,
-                  padding: 28,
+                  padding: 24,
                   borderWidth: 1,
                   borderColor: c.border,
                 }}
               >
-                <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5, marginBottom: 14 }}>{card.kicker}</Text>
+                <Text style={{ color: c.gold, fontSize: 10, letterSpacing: 2.4, marginBottom: 12, fontWeight: '700' }}>{card.kicker}</Text>
                 <Text
                   style={{
                     color: c.textPrimary,
-                    fontSize: 28,
+                    fontSize: 26,
                     fontFamily: fontFamily.display,
-                    fontWeight: '600',
-                    lineHeight: 36,
-                    marginBottom: 18,
+                    fontWeight: '500',
+                    lineHeight: 34,
+                    marginBottom: 14,
+                    letterSpacing: -0.4,
                   }}
                 >
                   {card.title}
                 </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 15, lineHeight: 23 }}>{card.body}</Text>
+                <Text style={{ color: c.textSecondary, fontSize: 14, lineHeight: 22 }}>{card.body}</Text>
               </View>
             </View>
           ))}
@@ -99,7 +104,7 @@ export default function Onboarding() {
             <View
               key={idx}
               style={{
-                width: idx === i ? 24 : 8,
+                width: idx === i ? 24 : 6,
                 height: 4,
                 borderRadius: 2,
                 backgroundColor: idx === i ? c.gold : c.border,

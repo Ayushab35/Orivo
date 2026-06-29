@@ -14,21 +14,23 @@ export default function TabsLayout() {
           borderTopColor: c.border,
           borderTopWidth: 1,
           height: 66,
-          paddingBottom: 10,
-          paddingTop: 10,
+          paddingBottom: 8,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: c.textPrimary,
         tabBarInactiveTintColor: c.textMuted,
-        tabBarLabelStyle: { fontSize: 10, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.4, marginTop: 2 },
+        tabBarItemStyle: { paddingHorizontal: 2, flex: 1, justifyContent: 'center' } as any,
         sceneStyle: { backgroundColor: c.bg },
+        tabBarAllowFontScaling: false,
       } as any}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Dashboard',
+          title: 'Home',
           tabBarButtonTestID: 'tab-dashboard',
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart-outline" size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />,
         } as any}
       />
       <Tabs.Screen
@@ -36,7 +38,7 @@ export default function TabsLayout() {
         options={{
           title: 'Insights',
           tabBarButtonTestID: 'tab-insights',
-          tabBarIcon: ({ color, size }) => <Ionicons name="layers-outline" size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'layers' : 'layers-outline'} size={20} color={color} />,
         } as any}
       />
       <Tabs.Screen
@@ -44,15 +46,15 @@ export default function TabsLayout() {
         options={{
           title: 'Advisor',
           tabBarButtonTestID: 'tab-advisor',
-          tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={20} color={color} />,
         } as any}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'You',
           tabBarButtonTestID: 'tab-profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size - 2} color={color} />,
+          tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'person' : 'person-outline'} size={20} color={color} />,
         } as any}
       />
     </Tabs>

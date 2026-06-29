@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../lib/themeContext';
 import { fontFamily, radii } from '../../lib/theme';
 import { Kicker } from '../../components/UI';
+import { FadeInUp } from '../../components/Animated';
 
 type Item = { key: string; label: string; preview: string; href: string; icon: string; status: 'live' | 'updated' | 'beta' };
 
@@ -31,9 +32,9 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: 'Timing',
     items: [
-      { key: 'brief', label: 'Daily Brief', preview: "Today's decision summary.", href: '/(tabs)/dashboard', icon: 'sunny-outline', status: 'live' },
+      { key: 'brief', label: 'Daily Brief', preview: "Today's decision summary.", href: '/outlook', icon: 'sunny-outline', status: 'live' },
       { key: 'outlook', label: 'Monthly Outlook', preview: 'Phase, peaks, defensive days.', href: '/outlook', icon: 'calendar-outline', status: 'beta' },
-      { key: 'phase', label: 'Current Phase', preview: 'Where you are in the cycle.', href: '/(tabs)/dashboard', icon: 'time-outline', status: 'live' },
+      { key: 'phase', label: 'Current Phase', preview: 'Where you are in the cycle.', href: '/outlook', icon: 'time-outline', status: 'live' },
       { key: 'peaks', label: 'Peak Decision Windows', preview: 'Best hours of the day.', href: '/outlook', icon: 'flame-outline', status: 'live' },
     ],
   },
@@ -50,6 +51,15 @@ const GROUPS: { title: string; items: Item[] }[] = [
 export default function Insights() {
   const { c } = useTheme();
   const router = useRouter();
+
+  const open = (href: string) => {
+    try {
+      router.push(href as any);
+    } catch {
+      router.push('/');
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
@@ -63,50 +73,51 @@ export default function Insights() {
           </Text>
         </View>
 
-        {GROUPS.map((g) => (
+        {GROUPS.map((g, gi) => (
           <View key={g.title} style={{ marginTop: 18 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <Kicker>{g.title}</Kicker>
               <View style={{ flex: 1, height: 1, backgroundColor: c.border }} />
             </View>
-            {g.items.map((it) => (
-              <Pressable
-                key={it.key}
-                testID={`insight-${it.key}`}
-                onPress={() => router.push(it.href as any)}
-                style={({ pressed }: any) => ({
-                  backgroundColor: pressed ? c.surfaceAlt : c.surface,
-                  borderRadius: radii.md,
-                  borderColor: c.border,
-                  borderWidth: 1,
-                  padding: 14,
-                  marginBottom: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                })}
-              >
-                <View
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    backgroundColor: c.surfaceMuted,
+            {g.items.map((it, ii) => (
+              <FadeInUp key={it.key} index={ii} delay={40}>
+                <Pressable
+                  testID={`insight-${it.key}`}
+                  onPress={() => open(it.href)}
+                  style={({ pressed }: any) => ({
+                    backgroundColor: pressed ? c.surfaceAlt : c.surface,
+                    borderRadius: radii.md,
+                    borderColor: c.border,
+                    borderWidth: 1,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
+                    gap: 12,
+                  })}
                 >
-                  <Ionicons name={it.icon as any} size={18} color={c.gold} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: '500' }}>{it.label}</Text>
-                    <StatusDot status={it.status} />
+                  <View
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      backgroundColor: c.surfaceMuted,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons name={it.icon as any} size={18} color={c.gold} />
                   </View>
-                  <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 2 }}>{it.preview}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
-              </Pressable>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: '500' }}>{it.label}</Text>
+                      <StatusDot status={it.status} />
+                    </View>
+                    <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 2 }}>{it.preview}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
+                </Pressable>
+              </FadeInUp>
             ))}
           </View>
         ))}
@@ -116,17 +127,16 @@ export default function Insights() {
 }
 
 function StatusDot({ status }: { status: 'live' | 'updated' | 'beta' }) {
-  const { c } = useTheme();
   const map = {
-    live: { bg: c.teal, label: 'LIVE' },
-    updated: { bg: c.gold, label: 'NEW' },
-    beta: { bg: c.textMuted, label: 'BETA' },
+    live: { color: '#3FA68E', label: 'LIVE' },
+    updated: { color: '#C9A961', label: 'NEW' },
+    beta: { color: '#8A8FA3', label: 'BETA' },
   } as const;
   const m = map[status];
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999, backgroundColor: 'transparent' }}>
-      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: m.bg }} />
-      <Text style={{ color: m.bg, fontSize: 9, fontWeight: '700', letterSpacing: 1 }}>{m.label}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: m.color }} />
+      <Text style={{ color: m.color, fontSize: 9, fontWeight: '700', letterSpacing: 1 }}>{m.label}</Text>
     </View>
   );
 }

@@ -23,6 +23,7 @@ from decision_intel import (
     generate_daily_brief,
     advisor_reply,
 )
+from role_fit import compute_role_fit
 from seed_data import PACKAGES, TASKS
 
 load_dotenv()
@@ -623,16 +624,30 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
         raise HTTPException(404, "User not found")
     today = date.today()
 
+    # Daily login bonus — once per user per day (+10 seconds)
+    login_scope = f"daily_login:{today.isoformat()}"
+    existing_login = await db.task_completions.find_one({"userId": user_id, "scopeKey": login_scope})
+    awarded = False
+    if not existing_login:
+        await db.task_completions.insert_one(
+            {"_id": str(uuid.uuid4()), "userId": user_id, "taskId": "daily_login", "scopeKey": login_scope, "completedAt": _now()}
+        )
+        await _add_credits(user_id, 10, "task:daily_login", expires_at=_now() + timedelta(days=90))
+        awarded = True
+
     # Read or generate cached brief
     cache_key = f"{user_id}:{today.isoformat()}"
     existing = await db.daily_briefs.find_one({"_id": cache_key})
     if existing:
         existing["id"] = existing.pop("_id")
+        if awarded:
+            existing["dailyLoginBonusGranted"] = True
         return existing
 
     idx = decision_index(user.get("birth"), today)
     phase = leadership_phase(user.get("birth"), today)
     window = peak_decision_window(user.get("birth"), today)
+    role_fit = compute_role_fit(user, today)
     brief = await generate_daily_brief(user, idx, phase, window)
 
     doc = {
@@ -642,6 +657,7 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
         "decisionIndex": idx,
         "phase": phase,
         "peakWindow": window,
+        "roleFit": role_fit,
         "brief": brief,
         "generatedAt": _now().isoformat(),
     }
@@ -650,6 +666,8 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     except Exception:
         pass
     doc["id"] = doc.pop("_id")
+    if awarded:
+        doc["dailyLoginBonusGranted"] = True
     return doc
 
 
@@ -665,6 +683,7 @@ async def advisor_chat(body: AdvisorChatBody, user_id: str = Depends(get_current
     history_cur = db.advisor_messages.find({"sessionId": session_id}).sort("createdAt", 1).limit(20)
     history = await history_cur.to_list(length=20)
     formatted = [{"role": h["role"], "content": h["content"]} for h in history]
+    is_first = len(history) == 0
 
     user_msg = {
         "_id": str(uuid.uuid4()),
@@ -687,11 +706,46 @@ async def advisor_chat(body: AdvisorChatBody, user_id: str = Depends(get_current
     }
     await db.advisor_messages.insert_one(asst_msg)
 
+    if is_first:
+        title = body.message.strip()
+        if len(title) > 70:
+            title = title[:67].rstrip() + "…"
+        await db.advisor_sessions.update_one(
+            {"_id": session_id},
+            {
+                "$set": {
+                    "userId": user_id,
+                    "title": title,
+                    "lastMessage": reply[:160],
+                    "updatedAt": _now(),
+                },
+                "$setOnInsert": {"createdAt": _now()},
+            },
+            upsert=True,
+        )
+    else:
+        await db.advisor_sessions.update_one(
+            {"_id": session_id},
+            {"$set": {"lastMessage": reply[:160], "updatedAt": _now()}},
+        )
+
     return {
         "sessionId": session_id,
         "reply": reply,
         "messageId": asst_msg["_id"],
     }
+
+
+@api.get("/advisor/sessions")
+async def advisor_sessions(user_id: str = Depends(get_current_user_id)):
+    cur = db.advisor_sessions.find({"userId": user_id}).sort("updatedAt", -1).limit(50)
+    items = await cur.to_list(length=50)
+    for it in items:
+        it["id"] = it.pop("_id")
+        for k in ("createdAt", "updatedAt"):
+            if it.get(k):
+                it[k] = it[k].isoformat() if hasattr(it[k], "isoformat") else it[k]
+    return {"items": items}
 
 
 @api.get("/advisor/history")
@@ -717,6 +771,53 @@ async def list_decisions(user_id: str = Depends(get_current_user_id)):
         if it.get("createdAt"):
             it["createdAt"] = it["createdAt"].isoformat()
     return {"items": items}
+
+
+# --------------------------- Astrology cache (Choghadiya / Charts) ---------------------------
+# These endpoints are scaffolded for a future 3rd-party astrology API integration.
+# Today they return any payload the user/admin previously cached for their account.
+
+class AstroCachePut(BaseModel):
+    kind: str  # e.g. "choghadiya", "rasi_chart", "navamsa_chart", "transits"
+    date: Optional[str] = None  # YYYY-MM-DD, optional
+    payload: dict
+
+
+@api.get("/astro/cache/{kind}")
+async def astro_cache_get(kind: str, date: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
+    q = {"userId": user_id, "kind": kind}
+    if date:
+        q["date"] = date
+    doc = await db.astro_cache.find_one(q, sort=[("updatedAt", -1)])
+    if not doc:
+        return {"cached": False, "payload": None}
+    return {
+        "cached": True,
+        "kind": doc.get("kind"),
+        "date": doc.get("date"),
+        "payload": doc.get("payload"),
+        "updatedAt": doc["updatedAt"].isoformat() if doc.get("updatedAt") else None,
+    }
+
+
+@api.post("/astro/cache")
+async def astro_cache_put(body: AstroCachePut, user_id: str = Depends(get_current_user_id)):
+    key = f"{user_id}:{body.kind}:{body.date or 'na'}"
+    await db.astro_cache.update_one(
+        {"_id": key},
+        {
+            "$set": {
+                "userId": user_id,
+                "kind": body.kind,
+                "date": body.date,
+                "payload": body.payload,
+                "updatedAt": _now(),
+            },
+            "$setOnInsert": {"createdAt": _now()},
+        },
+        upsert=True,
+    )
+    return {"ok": True, "id": key}
 
 
 @api.post("/decisions")
