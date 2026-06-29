@@ -117,3 +117,15 @@ export function StatRow({ label, value, valueColor, testID }: { label: string; v
     </View>
   );
 }
+
+export function SectionTitle({ children, kicker }: { children: React.ReactNode; kicker?: string }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ marginBottom: 10 }}>
+      {kicker ? (
+        <Text style={{ color: c.gold, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4, fontWeight: '700' }}>{kicker}</Text>
+      ) : null}
+      <Text style={{ color: c.textPrimary, fontSize: 18, fontFamily: fontFamily.display, fontWeight: '500', letterSpacing: -0.2 }}>{children}</Text>
+    </View>
+  );
+}
