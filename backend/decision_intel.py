@@ -6,13 +6,18 @@ Daily Brief). Astrology vocabulary is never surfaced.
 from datetime import datetime, date as date_cls, timedelta, timezone
 import hashlib
 import os
-import uuid
 from typing import Optional
 
-from astrology import _seed, compute_daily_outlook
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import anthropic
 
-LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+from astrology import _seed, compute_daily_outlook
+
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
+
+_client: anthropic.AsyncAnthropic | None = (
+    anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+)
 
 # ---- Leadership Phase (mapped from a 120-day rotating cycle) ----
 PHASES = [
@@ -182,7 +187,7 @@ async def generate_daily_brief(user: dict, idx: dict, phase: dict, window: dict)
         f"Use the {window.get('confidence','High').lower()}-confidence window beginning at "
         f"{(window.get('start') or '').split('T')[-1][:5]} for negotiations, hiring, or closing decisions."
     )
-    if not LLM_KEY:
+    if _client is None:
         return fallback
     try:
         name = (user.get("name") or "the executive").split(" ")[0]
@@ -195,13 +200,13 @@ async def generate_daily_brief(user: dict, idx: dict, phase: dict, window: dict)
             f"Allowed today: {', '.join(idx['allowed'])}. Avoid: {', '.join(idx['avoid'])}. "
             "Output PLAIN TEXT only — no JSON, no markdown."
         )
-        chat = LlmChat(
-            api_key=LLM_KEY,
-            session_id=f"orivo-brief-{uuid.uuid4()}",
-            system_message=BRIEF_SYSTEM,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        out = await chat.send_message(UserMessage(text=prompt))
-        text = (out or "").strip().strip('"')
+        resp = await _client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=350,
+            system=BRIEF_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = ("".join(getattr(b, "text", "") for b in resp.content) if resp.content else "").strip().strip('"')
         if 40 < len(text) < 800:
             return text
     except Exception as e:
@@ -216,7 +221,7 @@ async def advisor_reply(user: dict, history: list, message: str) -> str:
         "leaning forward on commitments that compound, holding back on emotionally-charged ones. "
         "If this is reversible and low-stake, move now; if it's irreversible, sleep on it and re-ask in the morning."
     )
-    if not LLM_KEY:
+    if _client is None:
         return fallback
     try:
         ctx = (
@@ -227,17 +232,21 @@ async def advisor_reply(user: dict, history: list, message: str) -> str:
             " Reply in 2-5 short sentences. Avoid bullet points. Always end with a single "
             "concrete recommendation, framed as a next step."
         )
-        chat = LlmChat(
-            api_key=LLM_KEY,
-            session_id=f"orivo-advisor-{user.get('_id','anon')}",
-            system_message=sys,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        # Replay limited history into the same session
+        messages: list[dict] = []
         for msg in (history or [])[-6:]:
-            if msg.get("role") == "user":
-                await chat.send_message(UserMessage(text=msg.get("content", "")))
-        out = await chat.send_message(UserMessage(text=message))
-        text = (out or "").strip()
+            role = msg.get("role")
+            content = (msg.get("content") or "").strip()
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": message})
+
+        resp = await _client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=600,
+            system=sys,
+            messages=messages,
+        )
+        text = ("".join(getattr(b, "text", "") for b in resp.content) if resp.content else "").strip()
         if text:
             return text
     except Exception as e:

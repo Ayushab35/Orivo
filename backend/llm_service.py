@@ -1,14 +1,19 @@
 """
-Wraps Emergent LLM (Claude Sonnet 4.5) to generate Vedic-flavored, executive-tone
-insight content for each report module. Returns parsed JSON sections.
+Wraps Anthropic's Claude SDK to generate Vedic-flavored, executive-tone
+insight content for each report module. Falls back to static content if
+ANTHROPIC_API_KEY is not configured or a call fails.
 """
 import os
 import json
 import re
-import uuid
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import anthropic
 
-LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
+
+_client: anthropic.AsyncAnthropic | None = (
+    anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+)
 
 SYSTEM_PROMPT = (
     "You write premium, executive-register, Vedic-astrology-flavored insight content for "
@@ -124,7 +129,7 @@ async def generate_report(module_key: str, user: dict) -> dict:
     if not spec:
         raise ValueError(f"Unknown module {module_key}")
 
-    if not LLM_KEY:
+    if _client is None:
         return spec["fallback"]
 
     birth = user.get("birth", {}) or {}
@@ -136,14 +141,14 @@ async def generate_report(module_key: str, user: dict) -> dict:
 
     user_msg = f"{profile_blurb}\n\n{spec['prompt']}"
     try:
-        chat = LlmChat(
-            api_key=LLM_KEY,
-            session_id=f"orivo-{module_key}-{uuid.uuid4()}",
-            system_message=SYSTEM_PROMPT,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        response = await chat.send_message(UserMessage(text=user_msg))
-        parsed = _extract_json(response or "")
+        resp = await _client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=1200,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_msg}],
+        )
+        text = "".join(getattr(b, "text", "") for b in resp.content) if resp.content else ""
+        parsed = _extract_json(text)
         if parsed:
             return parsed
     except Exception as e:

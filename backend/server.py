@@ -3,6 +3,7 @@ import uuid
 import random
 import string
 import httpx
+import stripe
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional, Literal
 from contextlib import asynccontextmanager
@@ -30,7 +31,10 @@ load_dotenv()
 
 DEV_OTP_BYPASS = os.environ.get("DEV_OTP_BYPASS", "true").lower() == "true"
 DEV_OTP_CODE = os.environ.get("DEV_OTP_CODE", "123456")
-STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 
 @asynccontextmanager
@@ -434,33 +438,45 @@ async def create_checkout(body: CheckoutRequest, request: Request, user_id: str 
     pkg = next((p for p in PACKAGES if p["id"] == body.packageId), None)
     if not pkg:
         raise HTTPException(400, "Invalid package")
-
-    from emergentintegrations.payments.stripe.checkout import (
-        StripeCheckout,
-        CheckoutSessionRequest,
-    )
-
-    host_url = str(request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(503, "Stripe is not configured on this server")
 
     origin = body.originUrl.rstrip("/")
     success_url = f"{origin}/payment-success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{origin}/packages"
 
-    req = CheckoutSessionRequest(
-        amount=float(pkg["priceUsd"]),
-        currency="usd",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={"userId": user_id, "packageId": pkg["id"], "creditsSec": str(pkg["creditsSec"])},
-    )
-    session = await stripe_checkout.create_checkout_session(req)
+    try:
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            payment_method_types=["card"],
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "unit_amount": int(round(pkg["priceUsd"] * 100)),
+                        "product_data": {
+                            "name": pkg["name"],
+                            "description": pkg["description"],
+                        },
+                    },
+                    "quantity": 1,
+                }
+            ],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "userId": user_id,
+                "packageId": pkg["id"],
+                "creditsSec": str(pkg["creditsSec"]),
+            },
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(502, f"Stripe error: {e.user_message or str(e)}")
 
     await db.payment_transactions.insert_one(
         {
             "_id": str(uuid.uuid4()),
-            "session_id": session.session_id,
+            "session_id": session.id,
             "userId": user_id,
             "packageId": pkg["id"],
             "amount": pkg["priceUsd"],
@@ -472,66 +488,82 @@ async def create_checkout(body: CheckoutRequest, request: Request, user_id: str 
         }
     )
 
-    return {"url": session.url, "sessionId": session.session_id}
+    return {"url": session.url, "sessionId": session.id}
 
 
 @api.get("/payments/status/{session_id}")
 async def payment_status(session_id: str, request: Request, user_id: str = Depends(get_current_user_id)):
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
-
-    host_url = str(request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(503, "Stripe is not configured on this server")
 
     txn = await db.payment_transactions.find_one({"session_id": session_id})
     if not txn:
         raise HTTPException(404, "Transaction not found")
 
-    status = await stripe_checkout.get_checkout_status(session_id)
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(502, f"Stripe error: {e.user_message or str(e)}")
+
+    payment_status_val = session.get("payment_status", "unpaid")
+    status_val = session.get("status", "open")
 
     already_credited = txn.get("status") == "completed"
-    if status.payment_status == "paid" and not already_credited:
-        # Award credits
-        credits_sec = int(txn.get("creditsSec") or status.metadata.get("creditsSec", 0))
+    if payment_status_val == "paid" and not already_credited:
+        credits_sec = int(txn.get("creditsSec") or (session.get("metadata") or {}).get("creditsSec", 0))
         if credits_sec > 0:
             await _add_credits(
-                txn["userId"], credits_sec, f"purchase:{txn['packageId']}",
+                txn["userId"],
+                credits_sec,
+                f"purchase:{txn['packageId']}",
                 expires_at=_now() + timedelta(days=90),
             )
         await db.payment_transactions.update_one(
             {"session_id": session_id},
             {"$set": {"status": "completed", "payment_status": "paid", "updatedAt": _now()}},
         )
-    elif status.status == "expired":
+    elif status_val == "expired":
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"status": "expired", "payment_status": status.payment_status, "updatedAt": _now()}},
+            {"$set": {"status": "expired", "payment_status": payment_status_val, "updatedAt": _now()}},
         )
 
     return {
-        "status": status.status,
-        "payment_status": status.payment_status,
-        "amount_total": status.amount_total,
-        "currency": status.currency,
-        "creditsAwarded": already_credited or status.payment_status == "paid",
+        "status": status_val,
+        "payment_status": payment_status_val,
+        "amount_total": session.get("amount_total"),
+        "currency": session.get("currency"),
+        "creditsAwarded": already_credited or payment_status_val == "paid",
     }
 
 
 @api.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    from emergentintegrations.payments.stripe.checkout import StripeCheckout
-
-    host_url = str(request.base_url).rstrip("/")
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-
-    body = await request.body()
-    sig = request.headers.get("Stripe-Signature", "")
+    payload = await request.body()
+    sig_header = request.headers.get("Stripe-Signature", "")
+    if not STRIPE_WEBHOOK_SECRET:
+        # Webhook signing not configured; accept but do nothing.
+        return {"received": True, "verified": False}
     try:
-        evt = await stripe_checkout.handle_webhook(body, sig)
-    except Exception:
-        return {"received": True}
-    return {"received": True, "type": evt.event_type}
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except (ValueError, stripe.error.SignatureVerificationError):
+        raise HTTPException(400, "Invalid webhook signature")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        sid = session.get("id")
+        meta = session.get("metadata") or {}
+        credits_sec = int(meta.get("creditsSec", 0))
+        user_id = meta.get("userId")
+        txn = await db.payment_transactions.find_one({"session_id": sid})
+        if txn and txn.get("status") != "completed" and user_id and credits_sec > 0:
+            await _add_credits(user_id, credits_sec, f"purchase:{meta.get('packageId')}", expires_at=_now() + timedelta(days=90))
+            await db.payment_transactions.update_one(
+                {"session_id": sid},
+                {"$set": {"status": "completed", "payment_status": "paid", "updatedAt": _now()}},
+            )
+
+    return {"received": True, "type": event["type"]}
 
 
 # --------------------------- Bookings ---------------------------

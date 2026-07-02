@@ -10,10 +10,11 @@ Never mystical. Never spiritual. Never fortune-telling.
 - **Backend**: FastAPI (Python) on port 8001
 - **DB**: MongoDB (motor)
 - **Auth**: Phone OTP, JWT. Dev-mode OTP bypass `123456`; Twilio plug-in deferred
-- **Payments**: Stripe Checkout via `emergentintegrations`
-- **LLM**: Claude Sonnet 4.5 via Emergent Universal Key — for personalized reports, Daily Brief, and the new AI Advisor chat
-- **Geocoding**: OpenStreetMap Nominatim
-- **Astrology engine**: deterministic rule engine seeded by DOB + time + place (kept internal; never surfaced to UI)
+- **Payments**: **Official `stripe` Python SDK** (v11.x) — user provides `STRIPE_SECRET_KEY`
+- **LLM**: **Official `anthropic` Python SDK** (Claude Sonnet 4.5) — user provides `ANTHROPIC_API_KEY`. Falls back to static content if unset.
+- **Geocoding**: OpenStreetMap Nominatim (no key required)
+- **Astrology engine**: deterministic rule engine seeded by DOB + time + place (kept internal)
+- **No Emergent-managed packages, keys, or private indices anywhere in the repo.**
 
 ## User personas
 1. Founder / CEO
