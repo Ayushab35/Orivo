@@ -8,7 +8,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import Optional, Literal
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -18,13 +18,14 @@ from auth_utils import create_token, get_current_user_id
 from astrology import compute_daily_outlook, numerology_profile
 from llm_service import generate_report
 from decision_intel import (
-    decision_index,
     leadership_phase,
     peak_decision_window,
-    generate_daily_brief,
     advisor_reply,
 )
 from role_fit import compute_role_fit
+from choghadia import compute_choghadia, color_of_the_day
+from reports import generate_daily_description, generate_soul_report, generate_inner_profile
+from security import encrypt_dict, decrypt_dict, encryption_ready
 from seed_data import PACKAGES, TASKS
 
 load_dotenv()
@@ -299,7 +300,10 @@ REPORT_MODULES = ["personality", "strengths", "career", "publicImage", "financia
 
 
 @api.get("/reports/{module_key}")
-async def get_report(module_key: str, user_id: str = Depends(get_current_user_id)):
+async def get_report(
+    module_key: str,
+    user_id: str = Depends(get_current_user_id),
+):
     if module_key not in REPORT_MODULES:
         raise HTTPException(404, "Unknown module")
     existing = await db.reports.find_one({"userId": user_id, "moduleKey": module_key})
@@ -667,40 +671,162 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
         await _add_credits(user_id, 10, "task:daily_login", expires_at=_now() + timedelta(days=90))
         awarded = True
 
-    # Read or generate cached brief
     cache_key = f"{user_id}:{today.isoformat()}"
-    existing = await db.daily_briefs.find_one({"_id": cache_key})
+    existing = await db.daily_reports.find_one({"_id": cache_key})
     if existing:
         existing["id"] = existing.pop("_id")
         if awarded:
             existing["dailyLoginBonusGranted"] = True
         return existing
 
-    idx = decision_index(user.get("birth"), today)
-    phase = leadership_phase(user.get("birth"), today)
-    window = peak_decision_window(user.get("birth"), today)
-    role_fit = compute_role_fit(user, today)
-    brief = await generate_daily_brief(user, idx, phase, window)
+    # Prefer choghadia payload provided by external astro API (astro_cache), else compute.
+    astro_choghadia_doc = await db.astro_cache.find_one(
+        {"userId": user_id, "kind": "choghadia", "date": today.isoformat()}
+    )
+    choghadia = (astro_choghadia_doc or {}).get("payload") or compute_choghadia(today)
+
+    color = color_of_the_day(today)
+
+    # Decrypt chart context (if any) to pass into the LLM
+    chart_doc = await db.d1_charts.find_one({"_id": user_id})
+    chart = decrypt_dict(chart_doc.get("chartEnc")) if chart_doc else None
+
+    daily = await generate_daily_description(user, color, choghadia, chart)
 
     doc = {
         "_id": cache_key,
         "userId": user_id,
         "date": today.isoformat(),
-        "decisionIndex": idx,
-        "phase": phase,
-        "peakWindow": window,
-        "roleFit": role_fit,
-        "brief": brief,
+        "dayName": today.strftime("%A"),
+        "dayDescription": daily,
+        "color": color,
+        "choghadia": choghadia,
         "generatedAt": _now().isoformat(),
     }
     try:
-        await db.daily_briefs.insert_one(doc)
+        await db.daily_reports.insert_one(doc)
     except Exception:
         pass
     doc["id"] = doc.pop("_id")
     if awarded:
         doc["dailyLoginBonusGranted"] = True
     return doc
+
+
+# --------------------------- New detailed reports ---------------------------
+
+@api.get("/self/soul-purpose")
+async def get_soul_purpose(user_id: str = Depends(get_current_user_id)):
+    existing = await db.soul_reports.find_one({"_id": user_id})
+    if existing:
+        existing["id"] = existing.pop("_id")
+        return existing
+    user = await db.users.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    chart_doc = await db.d1_charts.find_one({"_id": user_id})
+    chart = decrypt_dict(chart_doc.get("chartEnc")) if chart_doc else None
+    content = await generate_soul_report(user, chart)
+    doc = {
+        "_id": user_id,
+        "userId": user_id,
+        "content": content,
+        "generatedAt": _now().isoformat(),
+        "version": 1,
+    }
+    try:
+        await db.soul_reports.insert_one(doc)
+    except Exception:
+        pass
+    doc["id"] = doc.pop("_id")
+    return doc
+
+
+@api.post("/self/soul-purpose/refresh")
+async def refresh_soul_purpose(user_id: str = Depends(get_current_user_id)):
+    await db.soul_reports.delete_one({"_id": user_id})
+    return await get_soul_purpose(user_id)
+
+
+@api.get("/self/inner-profile")
+async def get_inner_profile(user_id: str = Depends(get_current_user_id)):
+    existing = await db.personality_reports.find_one({"_id": user_id})
+    if existing:
+        existing["id"] = existing.pop("_id")
+        return existing
+    user = await db.users.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    chart_doc = await db.d1_charts.find_one({"_id": user_id})
+    chart = decrypt_dict(chart_doc.get("chartEnc")) if chart_doc else None
+    content = await generate_inner_profile(user, chart)
+    doc = {
+        "_id": user_id,
+        "userId": user_id,
+        "content": content,
+        "generatedAt": _now().isoformat(),
+        "version": 1,
+    }
+    try:
+        await db.personality_reports.insert_one(doc)
+    except Exception:
+        pass
+    doc["id"] = doc.pop("_id")
+    return doc
+
+
+@api.post("/self/inner-profile/refresh")
+async def refresh_inner_profile(user_id: str = Depends(get_current_user_id)):
+    await db.personality_reports.delete_one({"_id": user_id})
+    return await get_inner_profile(user_id)
+
+
+# --------------------------- D1 chart ingest (external astro API) ---------------------------
+
+class D1ChartBody(BaseModel):
+    provider: str
+    chart: dict          # your calculated / provider-returned chart payload
+    calculations: Optional[dict] = None  # any derived values (Atmakaraka, 10th lord, etc.)
+
+
+@api.post("/astro/d1-chart")
+async def upsert_d1_chart(body: D1ChartBody, user_id: str = Depends(get_current_user_id)):
+    payload_enc = encrypt_dict({"chart": body.chart, "calculations": body.calculations or {}})
+    await db.d1_charts.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "userId": user_id,
+                "provider": body.provider,
+                "chartEnc": payload_enc,
+                "encrypted": encryption_ready(),
+                "updatedAt": _now(),
+            },
+            "$setOnInsert": {"createdAt": _now()},
+        },
+        upsert=True,
+    )
+    # Invalidate downstream reports so they regenerate against the new chart.
+    await db.daily_reports.delete_many({"userId": user_id})
+    await db.soul_reports.delete_one({"_id": user_id})
+    await db.personality_reports.delete_one({"_id": user_id})
+    return {"ok": True, "encrypted": encryption_ready()}
+
+
+@api.get("/astro/d1-chart")
+async def get_d1_chart(user_id: str = Depends(get_current_user_id)):
+    doc = await db.d1_charts.find_one({"_id": user_id})
+    if not doc:
+        return {"cached": False, "chart": None}
+    payload = decrypt_dict(doc.get("chartEnc")) or {}
+    return {
+        "cached": True,
+        "provider": doc.get("provider"),
+        "chart": payload.get("chart"),
+        "calculations": payload.get("calculations"),
+        "encrypted": bool(doc.get("encrypted")),
+        "updatedAt": doc["updatedAt"].isoformat() if doc.get("updatedAt") else None,
+    }
 
 
 @api.post("/advisor/chat")
