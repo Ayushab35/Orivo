@@ -1,26 +1,42 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, Animated, Easing } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../lib/themeContext';
-import { useAuth } from '../../lib/auth';
-import { fontFamily, radii } from '../../lib/theme';
-import { Kicker, Disclaimer } from '../../components/UI';
-import { TierBadge, MinutesPill } from '../../components/Badges';
-import { FadeInUp } from '../../components/Animated';
-import { api } from '../../lib/api';
-import { cacheGet, cacheSet } from '../../lib/cache';
+import React, { useCallback, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  RefreshControl,
+  Animated,
+  Easing,
+} from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../lib/themeContext";
+import { useAuth } from "../../lib/auth";
+import { fontFamily, radii } from "../../lib/theme";
+import { Kicker, Disclaimer } from "../../components/UI";
+import { TierBadge, MinutesPill } from "../../components/Badges";
+import { FadeInUp } from "../../components/Animated";
+import { api } from "../../lib/api";
+import { cacheGet, cacheSet } from "../../lib/cache";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TODAY_KEY = () => `dashboard.${new Date().toISOString().slice(0, 10)}`;
 
-const NATURE_LABEL = { best: 'PEAK', good: 'GOOD', avoid: 'AVOID', neutral: '—' } as const;
+const NATURE_LABEL = {
+  best: "PEAK",
+  good: "GOOD",
+  avoid: "AVOID",
+  neutral: "—",
+} as const;
 
 export default function Dashboard() {
   const { c } = useTheme();
   const router = useRouter();
   const { user, creditsBalanceSec, refresh } = useAuth();
   const [data, setData] = useState<any>(null);
+  const [chogApi, setChogApi] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bonusVisible, setBonusVisible] = useState(false);
@@ -31,13 +47,30 @@ export default function Dashboard() {
   const showBonus = () => {
     setBonusVisible(true);
     Animated.parallel([
-      Animated.timing(toastOp, { toValue: 1, duration: 320, useNativeDriver: true }),
-      Animated.timing(toastTr, { toValue: 1, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(toastOp, {
+        toValue: 1,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+      Animated.timing(toastTr, {
+        toValue: 1,
+        duration: 360,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
     setTimeout(() => {
       Animated.parallel([
-        Animated.timing(toastOp, { toValue: 0, duration: 400, useNativeDriver: true }),
-        Animated.timing(toastTr, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(toastOp, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(toastTr, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
       ]).start(() => setBonusVisible(false));
     }, 3200);
   };
@@ -45,8 +78,30 @@ export default function Dashboard() {
   const load = async () => {
     try {
       const cached = await cacheGet<any>(TODAY_KEY());
-      if (cached) { setData(cached); setLoading(false); }
-      const b = await api.get('/dashboard/today');
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+      }
+      // Ensure we have a stored location; if not, ask for permission first
+      const locRaw = await AsyncStorage.getItem("orivo.location");
+      if (!locRaw) {
+        router.push("/location-permission");
+        return;
+      }
+      try {
+        const loc = JSON.parse(locRaw);
+        const date = new Date().toISOString().slice(0, 10);
+        const lat = encodeURIComponent(String(loc.lat));
+        const lon = encodeURIComponent(String(loc.lon));
+        const ch = await api.get(
+          `/astro/choghadia?date=${date}&lat=${lat}&lon=${lon}`,
+        );
+        setChogApi(ch.payload || ch.payload || ch);
+      } catch (e) {
+        
+      }
+
+      const b = await api.get("/dashboard/today");
       setData(b);
       await cacheSet(TODAY_KEY(), b, 1000 * 60 * 60 * 6);
       await refresh();
@@ -54,14 +109,30 @@ export default function Dashboard() {
     } catch {}
   };
 
-  useFocusEffect(useCallback(() => { (async () => { await load(); setLoading(false); })(); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        await load();
+        setLoading(false);
+      })();
+    }, []),
+  );
 
-  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
 
   const dateObj = data?.date ? new Date(data.date) : new Date();
-  const dayName = data?.dayName || dateObj.toLocaleDateString(undefined, { weekday: 'long' });
-  const dateLabel = dateObj.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-  const firstName = (user?.name || 'Founder').split(' ')[0];
+  const dayName =
+    data?.dayName || dateObj.toLocaleDateString(undefined, { weekday: "long" });
+  const dateLabel = dateObj.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const firstName = (user?.name || "Founder").split(" ")[0];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
@@ -363,25 +434,42 @@ export default function Dashboard() {
                   <Ionicons name="hourglass-outline" size={18} color={c.gold} />
                 </View>
 
-                {data.decisionWindows?.good?.map((window: any, i: number) => (
-                  <WindowRow
-                    key={`good-${i}`}
-                    window={window}
-                    tone="good"
-                    testID={`decision-window-good-${i}`}
-                  />
-                ))}
+                {chogApi?.chaughadiya?.day ? (
+                  // Render API-provided day list (show all entries and repeat names if present)
+                  chogApi.chaughadiya.day.map((it: any, i: number) => (
+                    <DayRow
+                      key={`day-${i}`}
+                      item={it}
+                      testID={`choghadia-day-${i}`}
+                    />
+                  ))
+                ) : (
+                  <>
+                    {data.decisionWindows?.good?.map(
+                      (window: any, i: number) => (
+                        <WindowRow
+                          key={`good-${i}`}
+                          window={window}
+                          tone="good"
+                          testID={`decision-window-good-${i}`}
+                        />
+                      ),
+                    )}
 
-                <View style={{ height: 12 }} />
+                    <View style={{ height: 12 }} />
 
-                {data.decisionWindows?.avoid?.map((window: any, i: number) => (
-                  <WindowRow
-                    key={`avoid-${i}`}
-                    window={window}
-                    tone="avoid"
-                    testID={`decision-window-avoid-${i}`}
-                  />
-                ))}
+                    {data.decisionWindows?.avoid?.map(
+                      (window: any, i: number) => (
+                        <WindowRow
+                          key={`avoid-${i}`}
+                          window={window}
+                          tone="avoid"
+                          testID={`decision-window-avoid-${i}`}
+                        />
+                      ),
+                    )}
+                  </>
+                )}
               </View>
             </FadeInUp>
 
@@ -409,6 +497,13 @@ export default function Dashboard() {
               </FadeInUp>
             </View>
 
+            <FadeInUp index={4} style={{ marginTop: 14 }}>
+              <CurrentPeriodCard
+                period={data.currentPeriod}
+                testID="current-period-card"
+              />
+            </FadeInUp>
+
             <Disclaimer />
           </>
         )}
@@ -417,28 +512,223 @@ export default function Dashboard() {
   );
 }
 
-function WindowRow({ window, tone, testID }: { window: any; tone: 'good' | 'avoid'; testID?: string }) {
+function CurrentPeriodCard({
+  period,
+  testID,
+}: {
+  period: any;
+  testID?: string;
+}) {
   const { c } = useTheme();
-  const accent = tone === 'good' ? c.teal : c.terracotta;
+  const coveredPct = period?.totalDays
+    ? Math.round((period.coveredDays / period.totalDays) * 100)
+    : 0;
   return (
     <View
       testID={testID}
       style={{
-        flexDirection: 'row',
-        alignItems: 'flex-start',
+        backgroundColor: c.surface,
+        borderRadius: radii.lg,
+        borderColor: c.border,
+        borderWidth: 1,
+        padding: 22,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 14,
+        }}
+      >
+        <View>
+          <Kicker>CURRENT PERIOD</Kicker>
+          <Text
+            style={{
+              color: c.textPrimary,
+              fontFamily: fontFamily.display,
+              fontSize: 20,
+              fontWeight: "500",
+              marginTop: 4,
+            }}
+          >
+            {period?.start
+              ? new Date(period.start).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })
+              : "—"}{" "}
+            —{" "}
+            {period?.end
+              ? new Date(period.end).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })
+              : "—"}
+          </Text>
+        </View>
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 11,
+            letterSpacing: 1.4,
+            textTransform: "uppercase",
+          }}
+        >
+          {period?.coveredDays ?? 0}/{period?.totalDays ?? 0} days covered
+        </Text>
+      </View>
+
+      {period?.summary ? (
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 13,
+            lineHeight: 20,
+            marginBottom: 16,
+          }}
+        >
+          {period.summary}
+        </Text>
+      ) : null}
+
+      <View
+        style={{
+          height: 12,
+          backgroundColor: c.surfaceMuted,
+          borderRadius: radii.md,
+          overflow: "hidden",
+        }}
+      >
+        <View
+          style={{
+            width: `${coveredPct}%`,
+            height: 12,
+            backgroundColor: c.gold,
+          }}
+        />
+      </View>
+
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: 10,
+        }}
+      >
+        <Text style={{ color: c.textMuted, fontSize: 11 }}>
+          {coveredPct}% complete
+        </Text>
+        <Text style={{ color: c.textMuted, fontSize: 11 }}>
+          {period?.remainingDays ?? 0} days left
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function WindowRow({
+  window,
+  tone,
+  testID,
+}: {
+  window: any;
+  tone: "good" | "avoid";
+  testID?: string;
+}) {
+  const { c } = useTheme();
+  const accent = tone === "good" ? c.teal : c.terracotta;
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
         gap: 12,
         paddingVertical: 10,
         borderTopWidth: 1,
         borderColor: c.border,
       }}
     >
-      <View style={{ width: 3, minHeight: 40, borderRadius: 2, backgroundColor: accent, marginTop: 4 }} />
+      <View
+        style={{
+          width: 3,
+          minHeight: 40,
+          borderRadius: 2,
+          backgroundColor: accent,
+          marginTop: 4,
+        }}
+      />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: '700' }}>
+        <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: "700" }}>
           {shortTime(window.start)} — {shortTime(window.end)}
         </Text>
-        <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 6, lineHeight: 18 }}>
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 12,
+            marginTop: 6,
+            lineHeight: 18,
+          }}
+        >
           {window.note}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function DayRow({ item, testID }: { item: any; testID?: string }) {
+  const { c } = useTheme();
+  // Map muhurta names to tones
+  const toneMap: Record<string, "good" | "avoid" | "neutral"> = {
+    Amrit: "good",
+    Shubh: "good",
+    Labh: "good",
+    Char: "neutral",
+    Rog: "avoid",
+    Kaal: "avoid",
+    Udveg: "avoid",
+  };
+  const mu = item.muhurta || item.name || "—";
+  const tone = toneMap[mu] || "neutral";
+  const accent =
+    tone === "good" ? c.teal : tone === "avoid" ? c.terracotta : c.border;
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderColor: c.border,
+      }}
+    >
+      <View
+        style={{
+          width: 3,
+          minHeight: 40,
+          borderRadius: 2,
+          backgroundColor: accent,
+          marginTop: 4,
+        }}
+      />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: "700" }}>
+          {mu}
+        </Text>
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 12,
+            marginTop: 6,
+            lineHeight: 18,
+          }}
+        >
+          {item.time}
         </Text>
       </View>
     </View>
@@ -461,15 +751,65 @@ function ReportTile({ icon, kicker, title, subtitle, onPress, testID }: any) {
         transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
     >
-      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(201,169,97,0.10)', borderColor: 'rgba(201,169,97,0.28)', borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+      <View
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 10,
+          backgroundColor: "rgba(201,169,97,0.10)",
+          borderColor: "rgba(201,169,97,0.28)",
+          borderWidth: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: 14,
+        }}
+      >
         <Ionicons name={icon} size={16} color={c.gold} />
       </View>
-      <Text style={{ color: c.gold, fontSize: 10, letterSpacing: 1.5, fontWeight: '700' }}>{kicker}</Text>
-      <Text style={{ color: c.textPrimary, fontSize: 16, fontFamily: fontFamily.display, fontWeight: '500', marginTop: 4, letterSpacing: -0.3 }}>{title}</Text>
-      <Text style={{ color: c.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 15 }}>{subtitle}</Text>
+      <Text
+        style={{
+          color: c.gold,
+          fontSize: 10,
+          letterSpacing: 1.5,
+          fontWeight: "700",
+        }}
+      >
+        {kicker}
+      </Text>
+      <Text
+        style={{
+          color: c.textPrimary,
+          fontSize: 16,
+          fontFamily: fontFamily.display,
+          fontWeight: "500",
+          marginTop: 4,
+          letterSpacing: -0.3,
+        }}
+      >
+        {title}
+      </Text>
+      <Text
+        style={{
+          color: c.textSecondary,
+          fontSize: 11,
+          marginTop: 4,
+          lineHeight: 15,
+        }}
+      >
+        {subtitle}
+      </Text>
       <View style={{ flex: 1 }} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
-        <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600' }}>Open</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: "600" }}>
+          Open
+        </Text>
         <Ionicons name="arrow-forward" size={11} color={c.textMuted} />
       </View>
     </Pressable>
@@ -477,7 +817,7 @@ function ReportTile({ icon, kicker, title, subtitle, onPress, testID }: any) {
 }
 
 function shortTime(iso?: string) {
-  if (!iso) return '—';
+  if (!iso) return "—";
   if (iso.length <= 5) return iso;
   return iso.slice(-5);
 }

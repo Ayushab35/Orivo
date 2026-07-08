@@ -20,6 +20,7 @@ from llm_service import generate_report
 from decision_intel import (
     leadership_phase,
     peak_decision_window,
+    current_period,
     advisor_reply,
 )
 from role_fit import compute_role_fit
@@ -267,7 +268,8 @@ async def search_cities(q: str):
             filter(
                 None,
                 [
-                    addr.get("city") or addr.get("town") or addr.get("village") or addr.get("hamlet") or d.get("name"),
+                    addr.get("city") or addr.get("town") or addr.get(
+                        "village") or addr.get("hamlet") or d.get("name"),
                     addr.get("state"),
                     addr.get("country"),
                 ],
@@ -310,7 +312,8 @@ async def outlook_today(user_id: str = Depends(get_current_user_id)):
 
 # --------------------------- Reports ---------------------------
 
-REPORT_MODULES = ["personality", "strengths", "career", "publicImage", "financialPatterns"]
+REPORT_MODULES = ["personality", "strengths",
+                  "career", "publicImage", "financialPatterns"]
 
 
 @api.get("/reports/{module_key}")
@@ -359,7 +362,8 @@ async def submit_quiz(body: PersonalityQuiz, user_id: str = Depends(get_current_
     }
     await db.users.update_one(
         {"_id": user_id},
-        {"$set": {"personalityQuiz": {"answers": body.answers, "result": result, "at": _now()}}},
+        {"$set": {"personalityQuiz": {
+            "answers": body.answers, "result": result, "at": _now()}}},
     )
     # Award task credit if not already
     await _maybe_complete_task(user_id, "complete_personality")
@@ -426,7 +430,8 @@ async def get_astro_birth_chart(
             raise HTTPException(400, "Invalid stored birth details")
 
     if tzone is None:
-        tzone = float(os.environ.get("ASTROLOGYAPI_DEFAULT_TZONE", 0)) if os.environ.get("ASTROLOGYAPI_DEFAULT_TZONE") else round(lon / 15.0, 2)
+        tzone = float(os.environ.get("ASTROLOGYAPI_DEFAULT_TZONE", 0)) if os.environ.get(
+            "ASTROLOGYAPI_DEFAULT_TZONE") else round(lon / 15.0, 2)
 
     payload = {
         "day": day,
@@ -457,7 +462,8 @@ async def get_astro_birth_chart(
             detail = exc.response.json()
         except Exception:
             pass
-        raise HTTPException(exc.response.status_code, f"Astrology API error: {detail}")
+        raise HTTPException(exc.response.status_code,
+                            f"Astrology API error: {detail}")
     except Exception as exc:
         raise HTTPException(502, f"Astrology API request failed: {exc}")
 
@@ -471,7 +477,8 @@ async def credits_balance(user_id: str = Depends(get_current_user_id)):
 
 @api.get("/credits/ledger")
 async def credits_ledger(user_id: str = Depends(get_current_user_id)):
-    cur = db.credits_ledger.find({"userId": user_id}).sort("createdAt", -1).limit(50)
+    cur = db.credits_ledger.find({"userId": user_id}).sort(
+        "createdAt", -1).limit(50)
     items = await cur.to_list(length=50)
     for it in items:
         it["id"] = it.pop("_id")
@@ -499,7 +506,8 @@ async def _maybe_complete_task(user_id: str, task_id: str):
     if existing:
         return False
     await db.task_completions.insert_one(
-        {"_id": str(uuid.uuid4()), "userId": user_id, "taskId": task_id, "scopeKey": scope_key, "completedAt": _now()}
+        {"_id": str(uuid.uuid4()), "userId": user_id, "taskId": task_id,
+         "scopeKey": scope_key, "completedAt": _now()}
     )
     await _add_credits(user_id, task["creditsSec"], f"task:{task_id}", expires_at=_now() + timedelta(days=90))
     return True
@@ -526,7 +534,8 @@ async def list_tasks(user_id: str = Depends(get_current_user_id)):
 async def complete_task(body: TaskComplete, user_id: str = Depends(get_current_user_id)):
     ok = await _maybe_complete_task(user_id, body.taskId)
     if not ok:
-        raise HTTPException(400, "Task not available or already completed for this period")
+        raise HTTPException(
+            400, "Task not available or already completed for this period")
     return {"ok": True, "balanceSec": await _credit_balance(user_id)}
 
 
@@ -614,7 +623,8 @@ async def payment_status(session_id: str, request: Request, user_id: str = Depen
 
     already_credited = txn.get("status") == "completed"
     if payment_status_val == "paid" and not already_credited:
-        credits_sec = int(txn.get("creditsSec") or (session.get("metadata") or {}).get("creditsSec", 0))
+        credits_sec = int(txn.get("creditsSec") or (
+            session.get("metadata") or {}).get("creditsSec", 0))
         if credits_sec > 0:
             await _add_credits(
                 txn["userId"],
@@ -629,7 +639,8 @@ async def payment_status(session_id: str, request: Request, user_id: str = Depen
     elif status_val == "expired":
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"status": "expired", "payment_status": payment_status_val, "updatedAt": _now()}},
+            {"$set": {"status": "expired",
+                      "payment_status": payment_status_val, "updatedAt": _now()}},
         )
 
     return {
@@ -649,7 +660,8 @@ async def stripe_webhook(request: Request):
         # Webhook signing not configured; accept but do nothing.
         return {"received": True, "verified": False}
     try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except (ValueError, stripe.error.SignatureVerificationError):
         raise HTTPException(400, "Invalid webhook signature")
 
@@ -664,7 +676,8 @@ async def stripe_webhook(request: Request):
             await _add_credits(user_id, credits_sec, f"purchase:{meta.get('packageId')}", expires_at=_now() + timedelta(days=90))
             await db.payment_transactions.update_one(
                 {"session_id": sid},
-                {"$set": {"status": "completed", "payment_status": "paid", "updatedAt": _now()}},
+                {"$set": {"status": "completed",
+                          "payment_status": "paid", "updatedAt": _now()}},
             )
 
     return {"received": True, "type": event["type"]}
@@ -685,7 +698,8 @@ async def list_bookings(user_id: str = Depends(get_current_user_id)):
 
 @api.post("/bookings")
 async def create_booking(body: BookingRequest, user_id: str = Depends(get_current_user_id)):
-    pkg = next((p for p in PACKAGES if p["id"] == body.packageId), None) if body.packageId else None
+    pkg = next(
+        (p for p in PACKAGES if p["id"] == body.packageId), None) if body.packageId else None
     if not pkg:
         raise HTTPException(400, "Package required")
 
@@ -723,13 +737,16 @@ async def create_booking(body: BookingRequest, user_id: str = Depends(get_curren
 
 @api.get("/notifications")
 async def list_notifications(user_id: str = Depends(get_current_user_id)):
-    cur = db.notifications.find({"userId": user_id}).sort("createdAt", -1).limit(30)
+    cur = db.notifications.find({"userId": user_id}).sort(
+        "createdAt", -1).limit(30)
     items = await cur.to_list(length=30)
     if not items:
         # Seed a couple of welcome notifications on first read
         seeds = [
-            {"_id": str(uuid.uuid4()), "userId": user_id, "title": "Welcome to Orivo", "body": "Your private decision-support workspace is ready.", "createdAt": _now(), "read": False},
-            {"_id": str(uuid.uuid4()), "userId": user_id, "title": "Today's outlook is live", "body": "Review your favorable windows for the day.", "createdAt": _now(), "read": False},
+            {"_id": str(uuid.uuid4()), "userId": user_id, "title": "Welcome to Orivo",
+             "body": "Your private decision-support workspace is ready.", "createdAt": _now(), "read": False},
+            {"_id": str(uuid.uuid4()), "userId": user_id, "title": "Today's outlook is live",
+             "body": "Review your favorable windows for the day.", "createdAt": _now(), "read": False},
         ]
         await db.notifications.insert_many(seeds)
         items = seeds
@@ -766,7 +783,8 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     awarded = False
     if not existing_login:
         await db.task_completions.insert_one(
-            {"_id": str(uuid.uuid4()), "userId": user_id, "taskId": "daily_login", "scopeKey": login_scope, "completedAt": _now()}
+            {"_id": str(uuid.uuid4()), "userId": user_id, "taskId": "daily_login",
+             "scopeKey": login_scope, "completedAt": _now()}
         )
         await _add_credits(user_id, 10, "task:daily_login", expires_at=_now() + timedelta(days=90))
         awarded = True
@@ -776,7 +794,11 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     if existing:
         existing["id"] = existing.pop("_id")
         if existing.get("choghadia") and "decisionWindows" not in existing:
-            existing["decisionWindows"] = build_decision_windows(existing["choghadia"])
+            existing["decisionWindows"] = build_decision_windows(
+                existing["choghadia"])
+        if existing.get("currentPeriod") is None:
+            existing["currentPeriod"] = current_period(
+                user.get("birth"), today)
         if awarded:
             existing["dailyLoginBonusGranted"] = True
         return existing
@@ -785,7 +807,8 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     astro_choghadia_doc = await db.astro_cache.find_one(
         {"userId": user_id, "kind": "choghadia", "date": today.isoformat()}
     )
-    choghadia = (astro_choghadia_doc or {}).get("payload") or compute_choghadia(today)
+    choghadia = (astro_choghadia_doc or {}).get(
+        "payload") or compute_choghadia(today)
 
     color = color_of_the_day(today)
 
@@ -794,6 +817,7 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     chart = decrypt_dict(chart_doc.get("chartEnc")) if chart_doc else None
 
     decision_windows = build_decision_windows(choghadia)
+    current_period_data = current_period(user.get("birth"), today)
     daily = await generate_daily_description(user, color, choghadia, chart)
 
     doc = {
@@ -805,6 +829,7 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
         "color": color,
         "choghadia": choghadia,
         "decisionWindows": decision_windows,
+        "currentPeriod": current_period_data,
         "generatedAt": _now().isoformat(),
     }
     try:
@@ -889,13 +914,15 @@ async def refresh_inner_profile(user_id: str = Depends(get_current_user_id)):
 
 class D1ChartBody(BaseModel):
     provider: str
-    chart: dict          # your calculated / provider-returned chart payload
-    calculations: Optional[dict] = None  # any derived values (Atmakaraka, 10th lord, etc.)
+    chart: dict
+    # any derived values (Atmakaraka, 10th lord, etc.)
+    calculations: Optional[dict] = None
 
 
 @api.post("/astro/d1-chart")
 async def upsert_d1_chart(body: D1ChartBody, user_id: str = Depends(get_current_user_id)):
-    payload_enc = encrypt_dict({"chart": body.chart, "calculations": body.calculations or {}})
+    payload_enc = encrypt_dict(
+        {"chart": body.chart, "calculations": body.calculations or {}})
     await db.d1_charts.update_one(
         {"_id": user_id},
         {
@@ -905,8 +932,7 @@ async def upsert_d1_chart(body: D1ChartBody, user_id: str = Depends(get_current_
                 "chartEnc": payload_enc,
                 "encrypted": encryption_ready(),
                 "updatedAt": _now(),
-            },
-            "$setOnInsert": {"createdAt": _now()},
+            }
         },
         upsert=True,
     )
@@ -942,7 +968,8 @@ async def advisor_chat(body: AdvisorChatBody, user_id: str = Depends(get_current
         raise HTTPException(400, "Message too short")
 
     session_id = body.sessionId or str(uuid.uuid4())
-    history_cur = db.advisor_messages.find({"sessionId": session_id}).sort("createdAt", 1).limit(20)
+    history_cur = db.advisor_messages.find(
+        {"sessionId": session_id}).sort("createdAt", 1).limit(20)
     history = await history_cur.to_list(length=20)
     formatted = [{"role": h["role"], "content": h["content"]} for h in history]
     is_first = len(history) == 0
@@ -1000,13 +1027,15 @@ async def advisor_chat(body: AdvisorChatBody, user_id: str = Depends(get_current
 
 @api.get("/advisor/sessions")
 async def advisor_sessions(user_id: str = Depends(get_current_user_id)):
-    cur = db.advisor_sessions.find({"userId": user_id}).sort("updatedAt", -1).limit(50)
+    cur = db.advisor_sessions.find(
+        {"userId": user_id}).sort("updatedAt", -1).limit(50)
     items = await cur.to_list(length=50)
     for it in items:
         it["id"] = it.pop("_id")
         for k in ("createdAt", "updatedAt"):
             if it.get(k):
-                it[k] = it[k].isoformat() if hasattr(it[k], "isoformat") else it[k]
+                it[k] = it[k].isoformat() if hasattr(
+                    it[k], "isoformat") else it[k]
     return {"items": items}
 
 
@@ -1026,7 +1055,8 @@ async def advisor_history(sessionId: Optional[str] = None, user_id: str = Depend
 
 @api.get("/decisions")
 async def list_decisions(user_id: str = Depends(get_current_user_id)):
-    cur = db.decisions.find({"userId": user_id}).sort("createdAt", -1).limit(20)
+    cur = db.decisions.find({"userId": user_id}).sort(
+        "createdAt", -1).limit(20)
     items = await cur.to_list(length=20)
     for it in items:
         it["id"] = it.pop("_id")
@@ -1080,6 +1110,126 @@ async def astro_cache_put(body: AstroCachePut, user_id: str = Depends(get_curren
         upsert=True,
     )
     return {"ok": True, "id": key}
+
+
+@api.get("/astro/choghadia")
+async def astro_choghadia(
+    date: Optional[str] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    tzone: Optional[float] = None,
+    hour: Optional[int] = None,
+    minute: Optional[int] = None,
+    user_id: str = Depends(get_current_user_id),
+):
+    """Return choghadia for a date/location. Checks astro_cache first; otherwise calls
+    the external astrology API `chaughadiya_muhurta`, stores the response in `astro_cache`,
+    and returns the payload. Uses the authenticated user's stored birth/location if
+    explicit params are not provided.
+    """
+    target_date = None
+    if date:
+        try:
+            # expect YYYY-MM-DD
+            parts = date.split("-")
+            target_date = datetime(int(parts[0]), int(
+                parts[1]), int(parts[2])).date()
+        except Exception:
+            raise HTTPException(400, "date must be YYYY-MM-DD")
+    else:
+        target_date = date = date = datetime.utcnow().date()
+
+    date_str = target_date.isoformat()
+
+    # Normalize & round location to form a location key (city-level grouping)
+    lat_r = round(lat, 2)
+    lon_r = round(lon, 2)
+    location_key = f"loc:{lat_r}:{lon_r}"
+
+    # Check cache first by location + date
+    doc = await db.astro_cache.find_one({"kind": "choghadia", "date": date_str, "locationKey": location_key})
+    if doc:
+        return {"cached": True, "date": doc.get("date"), "payload": doc.get("payload"), "updatedAt": doc.get("updatedAt").isoformat() if doc.get("updatedAt") else None}
+
+    # Build request payload using supplied params or fallback to user profile
+    user = await db.users.find_one({"_id": user_id})
+    user_birth = (user or {}).get("birth") or {}
+
+    # date components
+    day = target_date.day
+    month = target_date.month
+    year = target_date.year
+
+    # time
+    if hour is None or minute is None:
+        # try user birth time
+        time_str = user_birth.get("time") if user_birth else None
+        if time_str:
+            try:
+                hh, mm = [int(x) for x in time_str.split(":")[:2]]
+                hour = hh
+                minute = mm
+            except Exception:
+                hour = 6
+                minute = 0
+        else:
+            hour = hour if hour is not None else 6
+            minute = minute if minute is not None else 0
+
+    # location
+    if lat is None or lon is None:
+        lat = lat if lat is not None else (user_birth.get(
+            "lat") or user_birth.get("birthLat") or user_birth.get("latitude"))
+        lon = lon if lon is not None else (user_birth.get(
+            "lng") or user_birth.get("birthLng") or user_birth.get("longitude"))
+
+    # timezone
+    if tzone is None:
+        tzone = user_birth.get("tz") or 5.5
+
+    # If still missing lat/lon, fall back to a safe default (0,0)
+    try:
+        lat = float(lat) if lat is not None else 0.0
+        lon = float(lon) if lon is not None else 0.0
+    except Exception:
+        lat = 0.0
+        lon = 0.0
+
+    # If no external API key, fall back to internal compute_choghadia
+    if not ASTROLOGYAPI_API_KEY:
+        fallback = compute_choghadia(target_date)
+        await db.astro_cache.update_one(
+            {"_id": f"{location_key}:choghadia:{date_str}"},
+            {"$set": {"kind": "choghadia", "date": date_str, "locationKey": location_key, "lat": lat_r,
+                      "lon": lon_r, "payload": fallback, "updatedAt": _now()}, "$setOnInsert": {"createdAt": _now()}},
+            upsert=True,
+        )
+        return {"cached": False, "payload": fallback}
+
+    api_url = f"{ASTROLOGYAPI_BASE_URL}/chaughadiya_muhurta"
+    req = {"day": day, "month": month, "year": year, "hour": hour,
+           "min": minute, "lat": lat, "lon": lon, "tzone": tzone}
+    headers = {"x-astrologyapi-key": ASTROLOGYAPI_API_KEY,
+               "Content-Type": "application/json"}
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(api_url, headers=headers, json=req)
+            resp.raise_for_status()
+            payload = resp.json()
+    except Exception:
+        # on any failure, fallback to internal compute
+        payload = {"chaughadiya": compute_choghadia(target_date)}
+
+    # Store in astro_cache for this location+date
+    await db.astro_cache.update_one(
+        {"_id": f"{location_key}:choghadia:{date_str}"},
+        {"$set": {"kind": "choghadia", "date": date_str, "locationKey": location_key, "lat": lat_r,
+                  "lon": lon_r, "payload": payload, "updatedAt": _now()}, "$setOnInsert": {"createdAt": _now()}},
+        upsert=True,
+    )
+
+    return {"cached": False, "payload": payload}
 
 
 @api.post("/decisions")

@@ -53,6 +53,41 @@ def peak_decision_window(user_birth: dict | None, target: date_cls) -> dict:
     return {"start": first["start"], "end": first["end"], "confidence": conf_level, "rationale": first.get("reason", ""), "secondary": fav[1] if len(fav) > 1 else None}
 
 
+def current_period(user_birth: dict | None, target: date_cls) -> dict:
+    if user_birth and user_birth.get("date"):
+        try:
+            birth = datetime.fromisoformat(user_birth["date"]).date()
+        except Exception:
+            birth = target
+    else:
+        birth = target
+
+    minor_length = 120
+    days_since_birth = max(0, (target - birth).days)
+    minor_index = days_since_birth // minor_length
+    current_minor_start = birth + timedelta(days=minor_index * minor_length)
+    current_minor_end = current_minor_start + timedelta(days=minor_length)
+    covered = max(0, min(minor_length, (target - current_minor_start).days))
+    remaining = max(0, (current_minor_end - target).days)
+
+    phase_name = leadership_phase(user_birth, target)["label"]
+    summary_map = {
+        "Expansion": "This current period favors follow-through and moving the clearest growth opportunities ahead.",
+        "Consolidation": "This current period is best used for refining execution and shoring up the plan.",
+        "Recalibration": "This current period calls for review, pruning, and waiting for clearer momentum before shifting course.",
+        "Execution": "This current period supports disciplined delivery and sharper decisions on what is already in motion.",
+    }
+
+    return {
+        "start": current_minor_start.isoformat(),
+        "end": current_minor_end.isoformat(),
+        "coveredDays": covered,
+        "remainingDays": remaining,
+        "totalDays": minor_length,
+        "summary": summary_map.get(phase_name, "Stay deliberate and keep the focus on what is ready to move."),
+    }
+
+
 BRIEF_SYSTEM = (
     "You are an executive decision intelligence assistant. Tone: McKinsey + Bloomberg — analytical, "
     "calm, objective, never mystical. Translate underlying patterns into business language. "
