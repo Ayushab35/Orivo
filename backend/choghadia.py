@@ -85,5 +85,34 @@ def compute_choghadia(target: date) -> dict:
     }
 
 
+def build_decision_windows(choghadia: dict) -> dict:
+    good_notes = [
+        "Best for negotiations, important meetings, or strategic alignment.",
+        "Strong window for approvals, briefing the team, or moving a stalled decision forward.",
+    ]
+    avoid_notes = [
+        "Avoid high-stakes commitments; use this time to review, prep, and lower risk.",
+        "Not ideal for major decisions; keep this slot for follow-up or quiet execution.",
+    ]
+
+    good = []
+    for i, slot in enumerate(choghadia.get("good", [])[:2]):
+        good.append({
+            "start": slot["start"],
+            "end": slot["end"],
+            "note": good_notes[i] if i < len(good_notes) else good_notes[-1],
+        })
+
+    avoid = []
+    for i, slot in enumerate(choghadia.get("avoid", [])[:2]):
+        avoid.append({
+            "start": slot["start"],
+            "end": slot["end"],
+            "note": avoid_notes[i] if i < len(avoid_notes) else avoid_notes[-1],
+        })
+
+    return {"good": good, "avoid": avoid}
+
+
 def color_of_the_day(target: date) -> dict:
     return DAY_COLOR[target.weekday()]

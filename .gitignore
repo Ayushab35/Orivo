@@ -5,3 +5,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+/frontend/node_modules
+/backend/__pycache__
+.DS_Store
+*.DS_Store

@@ -33,14 +33,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />,
         } as any}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="insights"
         options={{
           title: 'Insights',
           tabBarButtonTestID: 'tab-insights',
           tabBarIcon: ({ color, size, focused }: any) => <Ionicons name={focused ? 'layers' : 'layers-outline'} size={20} color={color} />,
         } as any}
-      />
+      /> */}
       <Tabs.Screen
         name="advisor"
         options={{

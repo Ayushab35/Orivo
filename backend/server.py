@@ -23,7 +23,7 @@ from decision_intel import (
     advisor_reply,
 )
 from role_fit import compute_role_fit
-from choghadia import compute_choghadia, color_of_the_day
+from choghadia import build_decision_windows, compute_choghadia, color_of_the_day
 from reports import generate_daily_description, generate_soul_report, generate_inner_profile
 from security import encrypt_dict, decrypt_dict, encryption_ready
 from seed_data import PACKAGES, TASKS
@@ -34,6 +34,9 @@ DEV_OTP_BYPASS = os.environ.get("DEV_OTP_BYPASS", "true").lower() == "true"
 DEV_OTP_CODE = os.environ.get("DEV_OTP_CODE", "123456")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+ASTROLOGYAPI_API_KEY = os.environ.get("ASTROLOGYAPI_API_KEY", "")
+ASTROLOGYAPI_BASE_URL = "https://json.astrologyapi.com/v1"
+ASTROLOGYAPI_PLANETS_ENDPOINT = f"{ASTROLOGYAPI_BASE_URL}/planets"
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
@@ -91,6 +94,17 @@ class BookingRequest(BaseModel):
     paymentMode: Literal["credits", "stripe"]
     packageId: Optional[str] = None
     originUrl: Optional[str] = None
+
+
+class BirthChartRequest(BaseModel):
+    day: Optional[int] = None
+    month: Optional[int] = None
+    year: Optional[int] = None
+    hour: Optional[int] = None
+    minute: Optional[int] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    tzone: Optional[float] = None
 
 
 class PersonalityQuiz(BaseModel):
@@ -360,6 +374,92 @@ async def get_numerology(user_id: str = Depends(get_current_user_id)):
     if not user or not user.get("birth", {}).get("date"):
         raise HTTPException(400, "Birth date required")
     return numerology_profile(user["birth"]["date"])
+
+
+@api.api_route("/astro/birth-chart", methods=["GET", "POST"])
+async def get_astro_birth_chart(
+    request: Request,
+    body: Optional[BirthChartRequest] = None,
+    day: Optional[int] = None,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    hour: Optional[int] = None,
+    minute: Optional[int] = None,
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
+    tzone: Optional[float] = None,
+    user_id: str = Depends(get_current_user_id),
+):
+    if not ASTROLOGYAPI_API_KEY:
+        raise HTTPException(503, "Astrology API key is not configured")
+
+    user = await db.users.find_one({"_id": user_id})
+    birth = user.get("birth") if user else {}
+
+    if body:
+        day = day if day is not None else body.day
+        month = month if month is not None else body.month
+        year = year if year is not None else body.year
+        hour = hour if hour is not None else body.hour
+        minute = minute if minute is not None else body.minute
+        lat = lat if lat is not None else body.lat
+        lon = lon if lon is not None else body.lon
+        tzone = tzone if tzone is not None else body.tzone
+
+    if day is None or month is None or year is None or hour is None or minute is None or lat is None or lon is None:
+        if not birth:
+            raise HTTPException(400, "Birth details required")
+        if not birth.get("date") or not birth.get("time") or birth.get("lat") is None or birth.get("lng") is None:
+            raise HTTPException(400, "Complete birth details required")
+
+        try:
+            day_str, month_str, year_str = birth["date"].split("-")
+            hour_str, minute_str = birth["time"].split(":")
+            day = int(day_str)
+            month = int(month_str)
+            year = int(year_str)
+            hour = int(hour_str)
+            minute = int(minute_str)
+            lat = float(birth["lat"])
+            lon = float(birth["lng"])
+        except Exception:
+            raise HTTPException(400, "Invalid stored birth details")
+
+    if tzone is None:
+        tzone = float(os.environ.get("ASTROLOGYAPI_DEFAULT_TZONE", 0)) if os.environ.get("ASTROLOGYAPI_DEFAULT_TZONE") else round(lon / 15.0, 2)
+
+    payload = {
+        "day": day,
+        "month": month,
+        "year": year,
+        "hour": hour,
+        "min": minute,
+        "lat": lat,
+        "lon": lon,
+        "tzone": tzone,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                ASTROLOGYAPI_PLANETS_ENDPOINT,
+                json=payload,
+                headers={
+                    "x-astrologyapi-key": ASTROLOGYAPI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            return {"ok": True, "chart": response.json()}
+    except httpx.HTTPStatusError as exc:
+        detail = exc.response.text
+        try:
+            detail = exc.response.json()
+        except Exception:
+            pass
+        raise HTTPException(exc.response.status_code, f"Astrology API error: {detail}")
+    except Exception as exc:
+        raise HTTPException(502, f"Astrology API request failed: {exc}")
 
 
 # --------------------------- Credits & tasks ---------------------------
@@ -675,6 +775,8 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     existing = await db.daily_reports.find_one({"_id": cache_key})
     if existing:
         existing["id"] = existing.pop("_id")
+        if existing.get("choghadia") and "decisionWindows" not in existing:
+            existing["decisionWindows"] = build_decision_windows(existing["choghadia"])
         if awarded:
             existing["dailyLoginBonusGranted"] = True
         return existing
@@ -691,6 +793,7 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
     chart_doc = await db.d1_charts.find_one({"_id": user_id})
     chart = decrypt_dict(chart_doc.get("chartEnc")) if chart_doc else None
 
+    decision_windows = build_decision_windows(choghadia)
     daily = await generate_daily_description(user, color, choghadia, chart)
 
     doc = {
@@ -701,6 +804,7 @@ async def dashboard_today(user_id: str = Depends(get_current_user_id)):
         "dayDescription": daily,
         "color": color,
         "choghadia": choghadia,
+        "decisionWindows": decision_windows,
         "generatedAt": _now().isoformat(),
     }
     try:

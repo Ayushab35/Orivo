@@ -8,9 +8,11 @@ import { Field } from '../components/Field';
 import { fontFamily, radii } from '../lib/theme';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INDUSTRIES = ['Technology', 'Finance', 'Healthcare', 'Manufacturing', 'Retail', 'Energy', 'Real Estate', 'Media', 'Consulting', 'Other'];
 const ROLES = ['Founder / CEO', 'Co-founder', 'CFO', 'COO', 'CTO', 'President', 'Managing Partner', 'Board Member'];
+const PROFILE_STORAGE_KEY = 'orivo.birthProfile';
 
 export default function BirthDetails() {
   const { c } = useTheme();
@@ -65,7 +67,7 @@ export default function BirthDetails() {
     setLoading(true);
     setErr('');
     try {
-      await api.post('/auth/birth-details', {
+      const profileData = {
         name,
         role,
         businessName,
@@ -75,7 +77,10 @@ export default function BirthDetails() {
         birthPlace: city!.label,
         birthLat: city!.lat,
         birthLng: city!.lng,
-      });
+      };
+
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+      await api.post('/auth/birth-details', profileData);
       await refresh();
       router.replace('/(tabs)/dashboard');
     } catch (e: any) {
@@ -97,26 +102,92 @@ export default function BirthDetails() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 24, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 24 }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: c.bg }}
+      edges={["top", "bottom"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 22,
+          paddingTop: 24,
+          paddingBottom: 60,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 24 }}>
           {[0, 1].map((s) => (
-            <View key={s} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: step >= s ? c.gold : c.border }} />
+            <View
+              key={s}
+              style={{
+                flex: 1,
+                height: 3,
+                borderRadius: 2,
+                backgroundColor: step >= s ? c.gold : c.border,
+              }}
+            />
           ))}
         </View>
 
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5, marginBottom: 6 }}>STEP {step + 1} OF 2</Text>
-        <Text style={{ color: c.textPrimary, fontSize: 26, fontFamily: fontFamily.display, fontWeight: '600', marginBottom: 24, lineHeight: 34 }}>
-          {step === 0 ? 'Tell us who you are.' : 'Your birth details.'}
+        <Text
+          style={{
+            color: c.gold,
+            fontSize: 11,
+            letterSpacing: 2.5,
+            marginBottom: 6,
+          }}
+        >
+          STEP {step + 1} OF 2
+        </Text>
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontSize: 26,
+            fontFamily: fontFamily.display,
+            fontWeight: "600",
+            marginBottom: 24,
+            lineHeight: 34,
+          }}
+        >
+          {step === 0 ? "Tell us who you are." : "Your birth details."}
         </Text>
 
         {step === 0 && (
           <View>
-            <Field testID="name-input" label="Full name" placeholder="Jane K. Sharma" value={name} onChangeText={setName} />
-            <Field testID="business-input" label="Business name" placeholder="Acme Capital" value={businessName} onChangeText={setBusinessName} />
+            <Field
+              testID="name-input"
+              label="Full name"
+              placeholder="Jane K. Sharma"
+              value={name}
+              onChangeText={setName}
+            />
+            <Field
+              testID="business-input"
+              label="Business name"
+              placeholder="Acme Capital"
+              value={businessName}
+              onChangeText={setBusinessName}
+            />
 
-            <Text style={{ fontSize: 12, color: c.textSecondary, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Role</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: c.textSecondary,
+                marginBottom: 8,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              Role
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 18,
+              }}
+            >
               {ROLES.map((r) => (
                 <Pressable
                   key={r}
@@ -131,13 +202,37 @@ export default function BirthDetails() {
                     borderColor: role === r ? c.primary : c.border,
                   }}
                 >
-                  <Text style={{ color: role === r ? c.primaryInk : c.textPrimary, fontSize: 13 }}>{r}</Text>
+                  <Text
+                    style={{
+                      color: role === r ? c.primaryInk : c.textPrimary,
+                      fontSize: 13,
+                    }}
+                  >
+                    {r}
+                  </Text>
                 </Pressable>
               ))}
             </View>
 
-            <Text style={{ fontSize: 12, color: c.textSecondary, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Industry</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: c.textSecondary,
+                marginBottom: 8,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+              }}
+            >
+              Industry
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 18,
+              }}
+            >
               {INDUSTRIES.map((r) => (
                 <Pressable
                   key={r}
@@ -152,7 +247,14 @@ export default function BirthDetails() {
                     borderColor: industry === r ? c.teal : c.border,
                   }}
                 >
-                  <Text style={{ color: industry === r ? '#FFF' : c.textPrimary, fontSize: 13 }}>{r}</Text>
+                  <Text
+                    style={{
+                      color: industry === r ? "#FFF" : c.textPrimary,
+                      fontSize: 13,
+                    }}
+                  >
+                    {r}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -161,8 +263,20 @@ export default function BirthDetails() {
 
         {step === 1 && (
           <View>
-            <Field testID="dob-input" label="Date of birth (YYYY-MM-DD)" placeholder="1985-04-12" value={birthDate} onChangeText={setBirthDate} />
-            <Field testID="tob-input" label="Time of birth (24h HH:MM)" placeholder="07:42" value={birthTime} onChangeText={setBirthTime} />
+            <Field
+              testID="dob-input"
+              label="Date of birth (YYYY-MM-DD)"
+              placeholder="1985-04-12"
+              value={birthDate}
+              onChangeText={setBirthDate}
+            />
+            <Field
+              testID="tob-input"
+              label="Time of birth (24h HH:MM)"
+              placeholder="07:42"
+              value={birthTime}
+              onChangeText={setBirthTime}
+            />
             <Field
               testID="city-input"
               label="City of birth"
@@ -174,7 +288,16 @@ export default function BirthDetails() {
               }}
             />
             {cityResults.length > 0 && !city && (
-              <View style={{ backgroundColor: c.surface, borderRadius: radii.md, borderColor: c.border, borderWidth: 1, marginTop: -8, marginBottom: 14 }}>
+              <View
+                style={{
+                  backgroundColor: c.surface,
+                  borderRadius: radii.md,
+                  borderColor: c.border,
+                  borderWidth: 1,
+                  marginTop: -8,
+                  marginBottom: 14,
+                }}
+              >
                 {cityResults.slice(0, 6).map((r, idx) => (
                   <Pressable
                     key={idx}
@@ -184,29 +307,52 @@ export default function BirthDetails() {
                       setCityQuery(r.label);
                       setCityResults([]);
                     }}
-                    style={{ padding: 12, borderTopWidth: idx === 0 ? 0 : 1, borderColor: c.border }}
+                    style={{
+                      padding: 12,
+                      borderTopWidth: idx === 0 ? 0 : 1,
+                      borderColor: c.border,
+                    }}
                   >
-                    <Text style={{ color: c.textPrimary, fontSize: 14 }}>{r.label}</Text>
+                    <Text style={{ color: c.textPrimary, fontSize: 14 }}>
+                      {r.label}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
             )}
             {city && (
-              <View style={{ marginTop: -8, marginBottom: 14, padding: 10, backgroundColor: 'rgba(15,110,86,0.08)', borderRadius: radii.md }}>
-                <Text style={{ color: c.teal, fontSize: 12 }}>✓ {city.label}</Text>
+              <View
+                style={{
+                  marginTop: -8,
+                  marginBottom: 14,
+                  padding: 10,
+                  backgroundColor: "rgba(15,110,86,0.08)",
+                  borderRadius: radii.md,
+                }}
+              >
+                <Text style={{ color: c.teal, fontSize: 12 }}>
+                  ✓ {city.label}
+                </Text>
               </View>
             )}
           </View>
         )}
 
-        {err ? <Text testID="birth-error" style={{ color: c.terracotta, fontSize: 13, marginBottom: 12 }}>{err}</Text> : null}
+        {err ? (
+          <Text
+            testID="birth-error"
+            style={{ color: c.terracotta, fontSize: 13, marginBottom: 12 }}
+          >
+            {err}
+          </Text>
+        ) : null}
 
         <Button
           testID="birth-continue-btn"
-          label={step === 0 ? 'Continue' : 'Save & enter Orivo'}
+          label={step === 0 ? "Continue" : "Save & enter Orivo"}
           onPress={next}
           loading={loading}
-          variant={step === 1 ? 'gold' : 'primary'}
+          variant={step === 1 ? "gold" : "primary"}
         />
       </ScrollView>
     </SafeAreaView>

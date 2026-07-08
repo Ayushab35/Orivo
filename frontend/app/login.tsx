@@ -33,24 +33,54 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingTop: 28, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <Text style={{ color: c.textPrimary, fontSize: 16, fontFamily: fontFamily.display, fontWeight: '600', letterSpacing: 3 }}>ORIVO</Text>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: c.bg }}
+      edges={["top", "bottom"]}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 22,
+          paddingTop: 28,
+          paddingBottom: 40,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontSize: 16,
+            fontFamily: fontFamily.display,
+            fontWeight: "600",
+            letterSpacing: 3,
+          }}
+        >
+          ORIVO
+        </Text>
 
         <Text
           style={{
             color: c.textPrimary,
             fontSize: 30,
             fontFamily: fontFamily.display,
-            fontWeight: '600',
+            fontWeight: "600",
             marginTop: 36,
             lineHeight: 38,
           }}
         >
           Sign in.
         </Text>
-        <Text style={{ color: c.textSecondary, fontSize: 14, marginTop: 8, marginBottom: 28, lineHeight: 22 }}>
-          A 6-digit code will be sent to your number. We never store it. We never share it.
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 14,
+            marginTop: 8,
+            marginBottom: 28,
+            lineHeight: 22,
+          }}
+        >
+          A 6-digit code will be sent to your number. We never store it. We
+          never share it.
         </Text>
 
         <Field
@@ -63,9 +93,22 @@ export default function Login() {
           onChangeText={setPhone}
         />
 
-        {err ? <Text testID="login-error" style={{ color: c.terracotta, fontSize: 13, marginBottom: 12 }}>{err}</Text> : null}
+        {err ? (
+          <Text
+            testID="login-error"
+            style={{ color: c.terracotta, fontSize: 13, marginBottom: 12 }}
+          >
+            {err}
+          </Text>
+        ) : null}
 
-        <Button testID="send-otp-btn" label="Send code" onPress={send} loading={loading} variant="primary" />
+        <Button
+          testID="send-otp-btn"
+          label="Send code"
+          onPress={send}
+          loading={loading}
+          variant="primary"
+        />
 
         <View
           style={{
@@ -77,8 +120,12 @@ export default function Login() {
             borderColor: c.border,
           }}
         >
-          <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 18 }}>
-            Dev mode: use the code <Text style={{ color: c.gold, fontWeight: '700' }}>123456</Text> for any number. Twilio integration plugs in later.
+          <Text
+            style={{ color: c.textSecondary, fontSize: 12, lineHeight: 18 }}
+          >
+            Dev mode: use the code{" "}
+            <Text style={{ color: c.gold, fontWeight: "700" }}>123456</Text> for
+            any number. Twilio integration plugs in later.
           </Text>
         </View>
       </ScrollView>

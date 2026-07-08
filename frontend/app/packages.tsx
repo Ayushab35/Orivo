@@ -60,19 +60,41 @@ export default function Packages() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable onPress={() => router.back()} style={{ marginBottom: 14 }}>
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>PRIVATE CONSULTATION</Text>
-        <Text style={{ color: c.textPrimary, fontSize: 28, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 16 }}>
+        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>
+          PRIVATE CONSULTATION
+        </Text>
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontSize: 28,
+            fontFamily: fontFamily.display,
+            fontWeight: "600",
+            marginTop: 4,
+            marginBottom: 16,
+          }}
+        >
           Choose a package.
         </Text>
 
         {/* Mode toggle */}
-        <View style={{ flexDirection: 'row', padding: 4, backgroundColor: c.surfaceAlt, borderRadius: radii.pill, marginBottom: 18 }}>
-          {(['pay', 'credits'] as Mode[]).map((m) => (
+        <View
+          style={{
+            flexDirection: "row",
+            padding: 4,
+            backgroundColor: c.surfaceAlt,
+            borderRadius: radii.pill,
+            marginBottom: 18,
+          }}
+        >
+          {(["pay", "credits"] as Mode[]).map((m) => (
             <Pressable
               key={m}
               testID={`mode-${m}`}
@@ -81,12 +103,20 @@ export default function Packages() {
                 flex: 1,
                 paddingVertical: 10,
                 borderRadius: radii.pill,
-                backgroundColor: mode === m ? c.surface : 'transparent',
-                alignItems: 'center',
+                backgroundColor: mode === m ? c.surface : "transparent",
+                alignItems: "center",
               }}
             >
-              <Text style={{ color: mode === m ? c.textPrimary : c.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                {m === 'pay' ? 'Pay now' : `Use minutes (${Math.floor(creditsBalanceSec / 60)})`}
+              <Text
+                style={{
+                  color: mode === m ? c.textPrimary : c.textSecondary,
+                  fontSize: 13,
+                  fontWeight: "600",
+                }}
+              >
+                {m === "pay"
+                  ? "Pay now"
+                  : `Use minutes (${Math.floor(creditsBalanceSec / 60)})`}
               </Text>
             </Pressable>
           ))}
@@ -94,7 +124,8 @@ export default function Packages() {
 
         {packages.map((p) => {
           const active = selected === p.id;
-          const insufficient = mode === 'credits' && creditsBalanceSec < p.creditsSec;
+          const insufficient =
+            mode === "credits" && creditsBalanceSec < p.creditsSec;
           return (
             <Pressable
               key={p.id}
@@ -110,38 +141,130 @@ export default function Packages() {
                 opacity: insufficient ? 0.5 : 1,
               }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
                 <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={{ color: c.textPrimary, fontSize: 18, fontFamily: fontFamily.display, fontWeight: '600' }}>{p.name}</Text>
-                  <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 4 }}>{p.description}</Text>
-                  <Text style={{ color: c.gold, fontSize: 12, marginTop: 8, letterSpacing: 1 }}>{Math.round(p.creditsSec / 60)} MINUTES</Text>
+                  <Text
+                    style={{
+                      color: c.textPrimary,
+                      fontSize: 18,
+                      fontFamily: fontFamily.display,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {p.name}
+                  </Text>
+                  <Text
+                    style={{
+                      color: c.textSecondary,
+                      fontSize: 13,
+                      marginTop: 4,
+                    }}
+                  >
+                    {p.description}
+                  </Text>
+                  <Text
+                    style={{
+                      color: c.gold,
+                      fontSize: 12,
+                      marginTop: 8,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {Math.round(p.creditsSec / 60)} MINUTES
+                  </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  {p.popular && <View style={{ backgroundColor: c.gold, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginBottom: 6 }}><Text style={{ color: c.goldInk, fontSize: 9, fontWeight: '700', letterSpacing: 1 }}>POPULAR</Text></View>}
-                  {mode === 'pay' ? (
-                    <Text style={{ color: c.textPrimary, fontSize: 22, fontFamily: fontFamily.display, fontWeight: '700' }}>${p.priceUsd}</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  {p.popular && (
+                    <View
+                      style={{
+                        backgroundColor: c.gold,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 4,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: c.goldInk,
+                          fontSize: 9,
+                          fontWeight: "700",
+                          letterSpacing: 1,
+                        }}
+                      >
+                        POPULAR
+                      </Text>
+                    </View>
+                  )}
+                  {mode === "pay" ? (
+                    <Text
+                      style={{
+                        color: c.textPrimary,
+                        fontSize: 22,
+                        fontFamily: fontFamily.display,
+                        fontWeight: "700",
+                      }}
+                    >
+                      ${p.priceUsd}
+                    </Text>
                   ) : (
-                    <Text style={{ color: c.textPrimary, fontSize: 22, fontFamily: fontFamily.display, fontWeight: '700' }}>{Math.round(p.creditsSec / 60)}m</Text>
+                    <Text
+                      style={{
+                        color: c.textPrimary,
+                        fontSize: 22,
+                        fontFamily: fontFamily.display,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {Math.round(p.creditsSec / 60)}m
+                    </Text>
                   )}
                 </View>
               </View>
-              {insufficient && <Text style={{ color: c.terracotta, fontSize: 11, marginTop: 6 }}>Insufficient minutes</Text>}
+              {insufficient && (
+                <Text
+                  style={{ color: c.terracotta, fontSize: 11, marginTop: 6 }}
+                >
+                  Insufficient minutes
+                </Text>
+              )}
             </Pressable>
           );
         })}
 
         <Button
           testID="pkg-continue-btn"
-          label={mode === 'pay' ? 'Continue to payment' : canUseCredits ? 'Choose a slot' : 'Insufficient minutes'}
+          label={
+            mode === "pay"
+              ? "Continue to payment"
+              : canUseCredits
+                ? "Choose a slot"
+                : "Insufficient minutes"
+          }
           onPress={proceed}
-          disabled={!selPkg || (mode === 'credits' && !canUseCredits)}
+          disabled={!selPkg || (mode === "credits" && !canUseCredits)}
           loading={busy}
           variant="gold"
           style={{ marginTop: 8 }}
         />
 
-        <Text style={{ color: c.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 14, lineHeight: 18 }}>
-          Both paths always available. Earn minutes through reflection — or simply pay.
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 12,
+            textAlign: "center",
+            marginTop: 14,
+            lineHeight: 18,
+          }}
+        >
+          Both paths always available. Earn minutes through reflection — or
+          simply pay.
         </Text>
         <Disclaimer />
       </ScrollView>

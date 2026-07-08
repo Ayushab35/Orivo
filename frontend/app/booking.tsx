@@ -71,26 +71,56 @@ export default function Booking() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Pressable onPress={() => router.back()} style={{ marginBottom: 12 }}>
           <Text style={{ color: c.textSecondary }}>← Back</Text>
         </Pressable>
-        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>CHOOSE A SLOT</Text>
-        <Text style={{ color: c.textPrimary, fontSize: 28, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4, marginBottom: 16 }}>
+        <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 2.5 }}>
+          CHOOSE A SLOT
+        </Text>
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontSize: 28,
+            fontFamily: fontFamily.display,
+            fontWeight: "600",
+            marginTop: 4,
+            marginBottom: 16,
+          }}
+        >
           Pick a window.
         </Text>
 
-        <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 10 }}>DATE</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 18 }}>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            marginBottom: 10,
+          }}
+        >
+          DATE
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 18 }}
+        >
+          <View style={{ flexDirection: "row", gap: 8 }}>
             {days.map((d, i) => {
               const active = selectedDay === i;
               return (
                 <Pressable
                   key={i}
                   testID={`day-${i}`}
-                  onPress={() => { setSelectedDay(i); setSlot(null); }}
+                  onPress={() => {
+                    setSelectedDay(i);
+                    setSlot(null);
+                  }}
                   style={{
                     paddingHorizontal: 16,
                     paddingVertical: 12,
@@ -98,46 +128,111 @@ export default function Booking() {
                     backgroundColor: active ? c.primary : c.surface,
                     borderWidth: 1,
                     borderColor: active ? c.primary : c.border,
-                    alignItems: 'center',
+                    alignItems: "center",
                     minWidth: 60,
                   }}
                 >
-                  <Text style={{ color: active ? c.primaryInk : c.textSecondary, fontSize: 10, letterSpacing: 1 }}>{d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</Text>
-                  <Text style={{ color: active ? '#FFF' : c.textPrimary, fontSize: 18, fontFamily: fontFamily.display, fontWeight: '600', marginTop: 4 }}>{d.getDate()}</Text>
+                  <Text
+                    style={{
+                      color: active ? c.primaryInk : c.textSecondary,
+                      fontSize: 10,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {d
+                      .toLocaleDateString(undefined, { weekday: "short" })
+                      .toUpperCase()}
+                  </Text>
+                  <Text
+                    style={{
+                      color: active ? "#FFF" : c.textPrimary,
+                      fontSize: 18,
+                      fontFamily: fontFamily.display,
+                      fontWeight: "600",
+                      marginTop: 4,
+                    }}
+                  >
+                    {d.getDate()}
+                  </Text>
                 </Pressable>
               );
             })}
           </View>
         </ScrollView>
 
-        <Text style={{ color: c.textSecondary, fontSize: 11, letterSpacing: 1.5, marginBottom: 10 }}>HOUR</Text>
-        <Text style={{ color: c.gold, fontSize: 11, marginBottom: 12 }}>● favorable window</Text>
+        <Text
+          style={{
+            color: c.textSecondary,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            marginBottom: 10,
+          }}
+        >
+          HOUR
+        </Text>
+        <Text style={{ color: c.gold, fontSize: 11, marginBottom: 12 }}>
+          ● favorable window
+        </Text>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {hours.map((h) => {
             const start = new Date(dayDate);
             start.setHours(h, 0, 0, 0);
             const end = new Date(start);
             end.setMinutes(end.getMinutes() + 30);
             const isFav = favSet.has(String(h));
-            const isSel = slot && new Date(slot.start).getHours() === h && selectedDay === days.findIndex((d) => d.toDateString() === new Date(slot.start).toDateString());
+            const isSel =
+              slot &&
+              new Date(slot.start).getHours() === h &&
+              selectedDay ===
+                days.findIndex(
+                  (d) =>
+                    d.toDateString() === new Date(slot.start).toDateString(),
+                );
             return (
               <Pressable
                 key={h}
                 testID={`slot-${h}`}
-                onPress={() => setSlot({ start: start.toISOString(), end: end.toISOString() })}
+                onPress={() =>
+                  setSlot({
+                    start: start.toISOString(),
+                    end: end.toISOString(),
+                  })
+                }
                 style={{
-                  width: '23%',
+                  width: "23%",
                   paddingVertical: 12,
-                  alignItems: 'center',
+                  alignItems: "center",
                   borderRadius: radii.md,
                   borderWidth: 1,
                   borderColor: isSel ? c.gold : isFav ? c.teal : c.border,
-                  backgroundColor: isSel ? c.gold : isFav ? 'rgba(15,110,86,0.08)' : c.surface,
+                  backgroundColor: isSel
+                    ? c.gold
+                    : isFav
+                      ? "rgba(15,110,86,0.08)"
+                      : c.surface,
                 }}
               >
-                <Text style={{ color: isSel ? c.goldInk : isFav ? c.teal : c.textPrimary, fontWeight: '600', fontSize: 14 }}>{String(h).padStart(2, '0')}:00</Text>
-                {isFav && !isSel && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: c.teal, marginTop: 4 }} />}
+                <Text
+                  style={{
+                    color: isSel ? c.goldInk : isFav ? c.teal : c.textPrimary,
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  {String(h).padStart(2, "0")}:00
+                </Text>
+                {isFav && !isSel && (
+                  <View
+                    style={{
+                      width: 4,
+                      height: 4,
+                      borderRadius: 2,
+                      backgroundColor: c.teal,
+                      marginTop: 4,
+                    }}
+                  />
+                )}
               </Pressable>
             );
           })}
@@ -145,11 +240,31 @@ export default function Booking() {
 
         {slot && (
           <Card style={{ marginTop: 18 }}>
-            <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 1.5 }}>YOUR SLOT</Text>
-            <Text style={{ color: c.textPrimary, fontSize: 16, fontWeight: '600', marginTop: 6 }}>
-              {new Date(slot.start).toLocaleString(undefined, { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <Text style={{ color: c.gold, fontSize: 11, letterSpacing: 1.5 }}>
+              YOUR SLOT
             </Text>
-            <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}>Paying with {paymentMode === 'credits' ? 'credits' : 'card'} · Package {packageId}</Text>
+            <Text
+              style={{
+                color: c.textPrimary,
+                fontSize: 16,
+                fontWeight: "600",
+                marginTop: 6,
+              }}
+            >
+              {new Date(slot.start).toLocaleString(undefined, {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+            <Text
+              style={{ color: c.textSecondary, fontSize: 12, marginTop: 4 }}
+            >
+              Paying with {paymentMode === "credits" ? "credits" : "card"} ·
+              Package {packageId}
+            </Text>
           </Card>
         )}
 

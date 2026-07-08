@@ -145,6 +145,33 @@ def test_numerology(session, auth):
     assert len(data["loshuGrid"]) == 9
 
 
+def test_astro_birth_chart(session, auth):
+    # Ensure birth details are stored for the current user.
+    payload = {
+        "name": "Test Founder",
+        "role": "Founder / CEO",
+        "businessName": "Acme Capital",
+        "industry": "Technology",
+        "birthDate": "1990-05-10",
+        "birthTime": "19:55",
+        "birthPlace": "Mumbai, Maharashtra, India",
+        "birthLat": 19.2056,
+        "birthLng": 25.2056,
+    }
+    r0 = session.post(f"{API}/auth/birth-details", json=payload)
+    assert r0.status_code == 200, r0.text
+
+    r = session.post(f"{API}/astro/birth-chart", json={})
+    if os.environ.get("ASTROLOGYAPI_API_KEY"):
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data.get("ok") is True
+        assert isinstance(data.get("chart"), list)
+        assert len(data["chart"]) >= 9
+    else:
+        assert r.status_code == 503
+
+
 # --- Tasks & credits ---
 def test_tasks_list(session, auth):
     r = session.get(f"{API}/tasks")

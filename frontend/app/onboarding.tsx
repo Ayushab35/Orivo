@@ -45,17 +45,50 @@ export default function Onboarding() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['top', 'bottom']}>
-      <View style={{ alignSelf: 'center', width: w, flex: 1, paddingHorizontal: 18, paddingTop: 18 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ color: c.textPrimary, fontSize: 16, fontFamily: fontFamily.display, fontWeight: '600', letterSpacing: 3 }}>ORIVO</Text>
-          <Pressable testID="onboarding-skip" onPress={() => router.push('/login')}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: c.bg }}
+      edges={["top", "bottom"]}
+    >
+      <View
+        style={{
+          alignSelf: "center",
+          width: w,
+          flex: 1,
+          paddingHorizontal: 18,
+          paddingTop: 18,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: c.textPrimary,
+              fontSize: 16,
+              fontFamily: fontFamily.display,
+              fontWeight: "600",
+              letterSpacing: 3,
+            }}
+          >
+            ORIVO
+          </Text>
+          <Pressable
+            testID="onboarding-skip"
+            onPress={() => router.push("/login")}
+          >
             <Text style={{ color: c.textSecondary, fontSize: 13 }}>Skip</Text>
           </Pressable>
         </View>
 
         {/* Hero animation */}
-        <FadeInUp index={0} style={{ alignItems: 'center', marginTop: 24, marginBottom: 8 }}>
+        <FadeInUp
+          index={0}
+          style={{ alignItems: "center", marginTop: 24, marginBottom: 8 }}
+        >
           <OnboardingHero size={Math.min(w - 100, 260)} />
         </FadeInUp>
 
@@ -64,12 +97,16 @@ export default function Onboarding() {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
         >
           {CARDS.map((card, idx) => (
-            <View key={idx} style={{ width: w - 36, paddingHorizontal: 6, paddingTop: 12 }}>
+            <View
+              key={idx}
+              style={{ width: w - 36, paddingHorizontal: 6, paddingTop: 12 }}
+            >
               <View
                 style={{
                   backgroundColor: c.surface,
@@ -79,13 +116,23 @@ export default function Onboarding() {
                   borderColor: c.border,
                 }}
               >
-                <Text style={{ color: c.gold, fontSize: 10, letterSpacing: 2.4, marginBottom: 12, fontWeight: '700' }}>{card.kicker}</Text>
+                <Text
+                  style={{
+                    color: c.gold,
+                    fontSize: 10,
+                    letterSpacing: 2.4,
+                    marginBottom: 12,
+                    fontWeight: "700",
+                  }}
+                >
+                  {card.kicker}
+                </Text>
                 <Text
                   style={{
                     color: c.textPrimary,
                     fontSize: 26,
                     fontFamily: fontFamily.display,
-                    fontWeight: '500',
+                    fontWeight: "500",
                     lineHeight: 34,
                     marginBottom: 14,
                     letterSpacing: -0.4,
@@ -93,13 +140,28 @@ export default function Onboarding() {
                 >
                   {card.title}
                 </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 14, lineHeight: 22 }}>{card.body}</Text>
+                <Text
+                  style={{
+                    color: c.textSecondary,
+                    fontSize: 14,
+                    lineHeight: 22,
+                  }}
+                >
+                  {card.body}
+                </Text>
               </View>
             </View>
           ))}
         </ScrollView>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: 18 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 8,
+            marginVertical: 18,
+          }}
+        >
           {CARDS.map((_, idx) => (
             <View
               key={idx}
@@ -115,9 +177,9 @@ export default function Onboarding() {
 
         <Button
           testID="onboarding-cta"
-          label={i === CARDS.length - 1 ? 'Enter Orivo' : 'Continue'}
+          label={i === CARDS.length - 1 ? "Enter Orivo" : "Continue"}
           onPress={next}
-          variant={i === CARDS.length - 1 ? 'gold' : 'primary'}
+          variant={i === CARDS.length - 1 ? "gold" : "primary"}
           style={{ marginBottom: 18 }}
         />
       </View>

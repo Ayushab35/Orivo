@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
+console.log('API BASE URL:', BASE);
+
 async function token() {
   return AsyncStorage.getItem('orivo.token');
 }
