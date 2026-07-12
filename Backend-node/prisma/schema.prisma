@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @map("_id") @default(auto()) @db.ObjectId
+  phone        String?  @unique
+  name         String?
+  role         String?
+  businessName String?
+  industry     String?
+  birthDate    String?
+  birthTime    String?
+  birthPlace   String?
+  birthLat     Float?
+  birthLng     Float?
+  onboarded    Boolean  @default(false)
+  tier         String?  @default("executive")
+  referralCode String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime?
+  personalityQuiz Json?
+}
+
+model OTPSession {
+  id         String   @id @map("_id") @default(auto()) @db.ObjectId
+  phone      String
+  code       String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  verified   Boolean  @default(false)
+
+  @@index([phone])
+}
+
+model DailyOutlook {
+  id         String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId     String
+  date       String
+  favorable   Json
+  caution     Json
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model Report {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String
+  moduleKey String
+  content   Json
+  version   Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, moduleKey])
+}
+
+model DailyReport {
+  id                    String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId                String
+  date                  String
+  dayName               String?
+  dayDescription        Json?
+  color                 Json?
+  choghadia             Json?
+  decisionWindows       Json?
+  currentPeriod         Json?
+  generatedAt           DateTime?
+  dailyLoginBonusGranted Boolean?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime?
+
+  @@unique([userId, date])
+}
+
+model CreditLedger {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String
+  deltaSec  Int
+  reason    String
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId      String
+  packageId   String
+  slotStart   String
+  slotEnd     String
+  paymentMode String
+  status      String
+  createdAt   DateTime @default(now())
+}
+
+model PaymentTransaction {
+  id           String   @id @map("_id") @default(auto()) @db.ObjectId
+  sessionId    String   @unique
+  userId       String
+  packageId    String
+  amount       Float
+  currency     String
+  creditsSec   Int
+  status       String
+  paymentStatus String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime?
+}
+
+model Notification {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+}
+
+model AdvisorMessage {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String
+  sessionId String
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model AdvisorSession {
+  id         String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId     String
+  title      String
+  lastMessage String
+  updatedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+model TaskCompletion {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId      String
+  scopeKey    String
+  completedAt DateTime @default(now())
+
+  @@unique([userId, scopeKey])
+}
+
+model AstroCache {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId      String?
+  kind        String
+  date        String?
+  locationKey String?
+  lat         Float?
+  lon         Float?
+  payload     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@index([userId, kind, date])
+  @@index([kind, date, locationKey])
+}
+
+model D1Chart {
+  id         String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId     String   @unique
+  provider   String
+  chartEnc   String
+  encrypted  Boolean
+  updatedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+model SoulReport {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId      String   @unique
+  content     Json
+  generatedAt DateTime @default(now())
+  version     Int
+}
+
+model PersonalityReport {
+  id          String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId      String   @unique
+  content     Json
+  generatedAt DateTime @default(now())
+  version     Int
+}
+
+model Decision {
+  id        String   @id @map("_id") @default(auto()) @db.ObjectId
+  userId    String
+  title     String
+  context   String?
+  decision  String?
+  createdAt DateTime @default(now())
+}

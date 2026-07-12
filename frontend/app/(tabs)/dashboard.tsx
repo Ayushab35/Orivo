@@ -31,6 +31,29 @@ const NATURE_LABEL = {
   neutral: "—",
 } as const;
 
+function getDashboardChoghadia(day: any[] = []) {
+  const rows: any[] = [];
+
+  // Find consecutive Labh -> Amrit
+  for (let i = 0; i < day.length - 1; i++) {
+    if (day[i].muhurta === "Labh" && day[i + 1].muhurta === "Amrit") {
+      rows.push(day[i]);
+      rows.push(day[i + 1]);
+      break;
+    }
+  }
+
+  // First Udveg
+  const udveg = day.find((x) => x.muhurta === "Udveg");
+  if (udveg) rows.push(udveg);
+
+  // First Kaal
+  const kaal = day.find((x) => x.muhurta === "Kaal");
+  if (kaal) rows.push(kaal);
+
+  return rows;
+}
+
 export default function Dashboard() {
   const { c } = useTheme();
   const router = useRouter();
@@ -84,6 +107,7 @@ export default function Dashboard() {
       }
       // Ensure we have a stored location; if not, ask for permission first
       const locRaw = await AsyncStorage.getItem("orivo.location");
+      console.log("locRaw", locRaw);
       if (!locRaw) {
         router.push("/location-permission");
         return;
@@ -435,14 +459,15 @@ export default function Dashboard() {
                 </View>
 
                 {chogApi?.chaughadiya?.day ? (
-                  // Render API-provided day list (show all entries and repeat names if present)
-                  chogApi.chaughadiya.day.map((it: any, i: number) => (
-                    <DayRow
-                      key={`day-${i}`}
-                      item={it}
-                      testID={`choghadia-day-${i}`}
-                    />
-                  ))
+                  getDashboardChoghadia(chogApi.chaughadiya.day).map(
+                    (it: any, i: number) => (
+                      <DayRow
+                        key={`day-${i}`}
+                        item={it}
+                        testID={`choghadia-day-${i}`}
+                      />
+                    ),
+                  )
                 ) : (
                   <>
                     {data.decisionWindows?.good?.map(
@@ -679,53 +704,175 @@ function WindowRow({
   );
 }
 
+// function DayRow({ item, testID }: { item: any; testID?: string }) {
+//   const { c } = useTheme();
+//   // Map muhurta names to tones
+//   const toneMap: Record<string, "good" | "avoid" | "neutral"> = {
+//     Amrit: "good",
+//     Shubh: "good",
+//     Labh: "good",
+//     Char: "neutral",
+//     Rog: "avoid",
+//     Kaal: "avoid",
+//     Udveg: "avoid",
+//   };
+//   const mu = item.muhurta || item.name || "—";
+//   const tone = toneMap[mu] || "neutral";
+//   const accent =
+//     tone === "good" ? c.teal : tone === "avoid" ? c.terracotta : c.border;
+//   return (
+//     <View
+//       testID={testID}
+//       style={{
+//         flexDirection: "row",
+//         alignItems: "flex-start",
+//         gap: 12,
+//         paddingVertical: 10,
+//         borderTopWidth: 1,
+//         borderColor: c.border,
+//       }}
+//     >
+//       <View
+//         style={{
+//           width: 3,
+//           minHeight: 40,
+//           borderRadius: 2,
+//           backgroundColor: accent,
+//           marginTop: 4,
+//         }}
+//       />
+//       <View style={{ flex: 1 }}>
+//         <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: "700" }}>
+//           {mu === "Labh" || mu === "Amrit" ? "Best Time" : "Avoid Time"}
+//         </Text>
+
+//         <Text
+//           style={{
+//             color: tone === "good" ? c.teal : c.terracotta,
+//             fontSize: 11,
+//             fontWeight: "600",
+//             marginTop: 2,
+//           }}
+//         >
+//           {mu}
+//         </Text>
+//         <Text
+//           style={{
+//             color: c.textSecondary,
+//             fontSize: 12,
+//             marginTop: 6,
+//             lineHeight: 18,
+//           }}
+//         >
+//           {item.time}
+//         </Text>
+//       </View>
+//     </View>
+//   );
+// }
 function DayRow({ item, testID }: { item: any; testID?: string }) {
   const { c } = useTheme();
-  // Map muhurta names to tones
-  const toneMap: Record<string, "good" | "avoid" | "neutral"> = {
-    Amrit: "good",
-    Shubh: "good",
-    Labh: "good",
-    Char: "neutral",
-    Rog: "avoid",
-    Kaal: "avoid",
-    Udveg: "avoid",
-  };
+
   const mu = item.muhurta || item.name || "—";
-  const tone = toneMap[mu] || "neutral";
+
+  const config: Record<
+    string,
+    {
+      tone: "good" | "avoid" | "neutral";
+      title: string;
+      subtitle: string;
+    }
+  > = {
+    Labh: {
+      tone: "good",
+      title: "Business Growth",
+      subtitle:
+        "Ideal for investments, negotiations, client meetings and financial decisions.",
+    },
+    Amrit: {
+      tone: "good",
+      title: "High Impact Decisions",
+      subtitle:
+        "Perfect for signing agreements, launching initiatives and making important executive decisions.",
+    },
+    Udveg: {
+      tone: "avoid",
+      title: "Avoid Major Decisions",
+      subtitle:
+        "Delay negotiations, important meetings and financial commitments if possible.",
+    },
+    Kaal: {
+      tone: "avoid",
+      title: "High Risk Period",
+      subtitle:
+        "Avoid investments, contracts and starting new ventures. Use this time for routine work.",
+    },
+  };
+
+  const row = config[mu] ?? {
+    tone: "neutral",
+    title: mu,
+    subtitle: "",
+  };
+
   const accent =
-    tone === "good" ? c.teal : tone === "avoid" ? c.terracotta : c.border;
+    row.tone === "good"
+      ? c.teal
+      : row.tone === "avoid"
+        ? c.terracotta
+        : c.border;
+
   return (
     <View
       testID={testID}
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        gap: 12,
-        paddingVertical: 10,
+        gap: 14,
+        paddingVertical: 16,
         borderTopWidth: 1,
         borderColor: c.border,
       }}
     >
       <View
         style={{
-          width: 3,
-          minHeight: 40,
-          borderRadius: 2,
+          width: 4,
+          minHeight: 56,
+          borderRadius: 4,
           backgroundColor: accent,
-          marginTop: 4,
+          marginTop: 2,
         }}
       />
+
       <View style={{ flex: 1 }}>
-        <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: "700" }}>
-          {mu}
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontSize: 15,
+            fontWeight: "700",
+          }}
+        >
+          {row.title}
         </Text>
+
         <Text
           style={{
             color: c.textSecondary,
             fontSize: 12,
-            marginTop: 6,
             lineHeight: 18,
+            marginTop: 4,
+          }}
+        >
+          {row.subtitle}
+        </Text>
+
+        <Text
+          style={{
+            color: accent,
+            fontSize: 12,
+            fontWeight: "700",
+            marginTop: 10,
+            letterSpacing: 0.3,
           }}
         >
           {item.time}

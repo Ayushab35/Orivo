@@ -9,3 +9,7 @@ credentials.json
 /backend/__pycache__
 .DS_Store
 *.DS_Store
+/backend/node_modules
+/backend-node/node_modules
+/backend-node/dist
+/backend-node/.env
