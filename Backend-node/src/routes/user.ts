@@ -5,7 +5,6 @@ import {
   saveBirthDetails,
   me,
   searchCities,
-  outlookToday,
   getReport,
   submitPersonalityQuiz,
   numerology,
@@ -52,7 +51,6 @@ router.post(
 );
 router.get("/users/me", requireAuth, me);
 router.get("/cities/search", searchCities);
-router.get("/outlook/today", requireAuth, outlookToday);
 router.get("/reports/:moduleKey", requireAuth, getReport);
 router.post(
   "/reports/personality/quiz",

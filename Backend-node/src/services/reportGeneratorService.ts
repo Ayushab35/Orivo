@@ -90,28 +90,15 @@ function profileBlurb(user: any, chart: any) {
 export async function generateDailyDescription(
   user: any,
   dayColor: any,
-  choghadia: any,
+  // choghadia: any,
   chart: any,
 ) {
   const client = new LLMClient();
   if (!client.available) {
     return DAILY_BRIEF_FALLBACK;
   }
-  const good = (choghadia?.good || [])
-    .slice(0, 2)
-    .map(
-      (slot: any) =>
-        `${slot.name} ${slot.start.slice(-5)}-${slot.end.slice(-5)}`,
-    )
-    .join(", ");
-  const avoid = (choghadia?.avoid || [])
-    .slice(0, 2)
-    .map(
-      (slot: any) =>
-        `${slot.name} ${slot.start.slice(-5)}-${slot.end.slice(-5)}`,
-    )
-    .join(", ");
-  const prompt = `${profileBlurb(user, chart)}\n\nWearable color of the day: ${dayColor.name} (${dayColor.reason}). Auspicious windows: ${good}. Avoid windows: ${avoid}. Write a 2-3 sentence executive-tone daily description in strict JSON with keys description, auspicious, caution.`;
+  
+  const prompt = `${profileBlurb(user, chart)}\n\nWearable color of the day: ${dayColor.name} (${dayColor.reason}). Write a 2-3 sentence executive-tone daily description in strict JSON with keys description, auspicious, caution.`;
   const resp = await client.generateJson(
     "You are an executive advisor writing for a C-suite founder. Tone: private-banking + McKinsey. Translate any underlying astrological or numerological signals into calm, objective business language. Forbidden vocabulary: horoscope, zodiac, planet names, dasha, nakshatra, yoga, transit, lucky, mystical, spiritual. Every output must be strict JSON, no markdown, no preamble.",
     [{ role: "user", content: prompt }],

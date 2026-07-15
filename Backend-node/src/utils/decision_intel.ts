@@ -1,6 +1,3 @@
-import crypto from "crypto";
-import { computeDailyOutlook } from "./astrology";
-
 const PHASES = [
   {
     key: "expansion",
@@ -32,13 +29,6 @@ const PHASES = [
   },
 ];
 
-function digest(parts: string) {
-  return parseInt(
-    crypto.createHash("sha256").update(parts).digest("hex").slice(0, 12),
-    16,
-  );
-}
-
 export function leadershipPhase(userBirth: any, target: Date) {
   let anchor = target;
   if (userBirth?.date) {
@@ -61,24 +51,6 @@ export function leadershipPhase(userBirth: any, target: Date) {
     daysRemaining,
     cycleLength: 120,
     progressPct: Math.round((daysIn / 120) * 100),
-  };
-}
-
-export function peakDecisionWindow(userBirth: any, target: Date) {
-  const outlook = computeDailyOutlook(userBirth, target);
-  const fav = outlook.favorable || [];
-  if (fav.length === 0) {
-    return { start: null, end: null, confidence: "Moderate" };
-  }
-  const first = fav[0];
-  const seed = digest(`${first.start}|conf`);
-  const confidence = ["High", "High", "High", "Strong", "Moderate"][seed % 5];
-  return {
-    start: first.start,
-    end: first.end,
-    confidence,
-    rationale: first.reason,
-    secondary: fav[1] ?? null,
   };
 }
 

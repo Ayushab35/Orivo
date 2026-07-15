@@ -22,6 +22,8 @@ type AuthCtx = {
   signInWithToken: (token: string, user: User) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
+  updateCreditsBalance: (balance: number) => void;
 };
 
 const Ctx = createContext<AuthCtx>({
@@ -31,12 +33,29 @@ const Ctx = createContext<AuthCtx>({
   signInWithToken: async () => {},
   signOut: async () => {},
   refresh: async () => {},
+  updateUser: () => {},
+  updateCreditsBalance: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [creditsBalanceSec, setBalance] = useState(0);
+
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            ...updates,
+          }
+        : prev,
+    );
+  }, []);
+
+  const updateCreditsBalance = useCallback((balance: number) => {
+    setBalance(balance);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -79,7 +98,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <Ctx.Provider value={{ ready, user, creditsBalanceSec, signInWithToken, signOut, refresh }}>{children}</Ctx.Provider>
+    <Ctx.Provider
+      value={{
+        ready,
+        user,
+        creditsBalanceSec,
+        signInWithToken,
+        signOut,
+        refresh,
+        updateUser,
+        updateCreditsBalance,
+      }}
+    >
+      {children}
+    </Ctx.Provider>
   );
 }
 

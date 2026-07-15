@@ -17,7 +17,7 @@ const PROFILE_STORAGE_KEY = 'orivo.birthProfile';
 export default function BirthDetails() {
   const { c } = useTheme();
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { updateUser } = useAuth();
   const [name, setName] = useState('');
   const [role, setRole] = useState('Founder / CEO');
   const [businessName, setBusinessName] = useState('');
@@ -81,7 +81,20 @@ export default function BirthDetails() {
 
       await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
       await api.post('/auth/birth-details', profileData);
-      await refresh();
+      updateUser({
+        name,
+        role,
+        businessName,
+        industry,
+        onboarded: true,
+        birth: {
+          date: birthDate,
+          time: birthTime,
+          placeName: city!.label,
+          lat: city!.lat,
+          lng: city!.lng,
+        },
+      });
       router.replace('/(tabs)/dashboard');
     } catch (e: any) {
       setErr(e.message || 'Failed to save');

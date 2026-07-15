@@ -23,18 +23,12 @@ import { cacheGet, cacheSet } from "../../lib/cache";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TODAY_KEY = () => `dashboard.${new Date().toISOString().slice(0, 10)}`;
-
-const NATURE_LABEL = {
-  best: "PEAK",
-  good: "GOOD",
-  avoid: "AVOID",
-  neutral: "—",
-} as const;
+const CHOGHADIA_KEY = () =>
+  `choghadia.${new Date().toISOString().slice(0, 10)}`;
 
 function getDashboardChoghadia(day: any[] = []) {
   const rows: any[] = [];
 
-  // Find consecutive Labh -> Amrit
   for (let i = 0; i < day.length - 1; i++) {
     if (day[i].muhurta === "Labh" && day[i + 1].muhurta === "Amrit") {
       rows.push(day[i]);
@@ -114,21 +108,44 @@ export default function Dashboard() {
       }
       try {
         const loc = JSON.parse(locRaw);
-        const date = new Date().toISOString().slice(0, 10);
-        const lat = encodeURIComponent(String(loc.lat));
-        const lon = encodeURIComponent(String(loc.lon));
-        const ch = await api.get(
-          `/astro/choghadia?date=${date}&lat=${lat}&lon=${lon}`,
-        );
-        setChogApi(ch.payload || ch.payload || ch);
+
+        // Check cache first
+        const cachedChoghadia = await AsyncStorage.getItem(CHOGHADIA_KEY());
+
+        if (cachedChoghadia) {
+          console.log("Using cached chaughadia");
+
+          setChogApi(JSON.parse(cachedChoghadia));
+        } else {
+          console.log("Fetching fresh chaughadia");
+
+          const date = new Date().toISOString().slice(0, 10);
+          const lat = encodeURIComponent(String(loc.lat));
+          const lon = encodeURIComponent(String(loc.lon));
+
+          const ch = await api.get(
+            `/astro/choghadia?date=${date}&lat=${lat}&lon=${lon}`,
+          );
+
+          const payload = ch.payload || ch;
+
+          setChogApi(payload);
+
+          await AsyncStorage.setItem(CHOGHADIA_KEY(), JSON.stringify(payload));
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+
+          const oldKey = `choghadia.${yesterday.toISOString().slice(0, 10)}`;
+
+          await AsyncStorage.removeItem(oldKey);
+        }
       } catch (e) {
-        
+        console.error("Failed to load chaughadia", e);
       }
 
       const b = await api.get("/dashboard/today");
       setData(b);
       await cacheSet(TODAY_KEY(), b, 1000 * 60 * 60 * 6);
-      await refresh();
       if (b.dailyLoginBonusGranted) showBonus();
     } catch {}
   };
@@ -704,72 +721,6 @@ function WindowRow({
   );
 }
 
-// function DayRow({ item, testID }: { item: any; testID?: string }) {
-//   const { c } = useTheme();
-//   // Map muhurta names to tones
-//   const toneMap: Record<string, "good" | "avoid" | "neutral"> = {
-//     Amrit: "good",
-//     Shubh: "good",
-//     Labh: "good",
-//     Char: "neutral",
-//     Rog: "avoid",
-//     Kaal: "avoid",
-//     Udveg: "avoid",
-//   };
-//   const mu = item.muhurta || item.name || "—";
-//   const tone = toneMap[mu] || "neutral";
-//   const accent =
-//     tone === "good" ? c.teal : tone === "avoid" ? c.terracotta : c.border;
-//   return (
-//     <View
-//       testID={testID}
-//       style={{
-//         flexDirection: "row",
-//         alignItems: "flex-start",
-//         gap: 12,
-//         paddingVertical: 10,
-//         borderTopWidth: 1,
-//         borderColor: c.border,
-//       }}
-//     >
-//       <View
-//         style={{
-//           width: 3,
-//           minHeight: 40,
-//           borderRadius: 2,
-//           backgroundColor: accent,
-//           marginTop: 4,
-//         }}
-//       />
-//       <View style={{ flex: 1 }}>
-//         <Text style={{ color: c.textPrimary, fontSize: 14, fontWeight: "700" }}>
-//           {mu === "Labh" || mu === "Amrit" ? "Best Time" : "Avoid Time"}
-//         </Text>
-
-//         <Text
-//           style={{
-//             color: tone === "good" ? c.teal : c.terracotta,
-//             fontSize: 11,
-//             fontWeight: "600",
-//             marginTop: 2,
-//           }}
-//         >
-//           {mu}
-//         </Text>
-//         <Text
-//           style={{
-//             color: c.textSecondary,
-//             fontSize: 12,
-//             marginTop: 6,
-//             lineHeight: 18,
-//           }}
-//         >
-//           {item.time}
-//         </Text>
-//       </View>
-//     </View>
-//   );
-// }
 function DayRow({ item, testID }: { item: any; testID?: string }) {
   const { c } = useTheme();
 

@@ -11,7 +11,7 @@ import { useAuth } from '../lib/auth';
 export default function PaymentSuccess() {
   const { c } = useTheme();
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { updateCreditsBalance } = useAuth();
   const { session_id } = useLocalSearchParams<{ session_id: string }>();
   const [status, setStatus] = useState<string>('checking');
   const [paymentStatus, setPaymentStatus] = useState<string>('');
@@ -37,7 +37,9 @@ export default function PaymentSuccess() {
         setPaymentStatus(r.payment_status);
         if (r.payment_status === 'paid') {
           setStatus('paid');
-          await refresh();
+          if (typeof r.creditsBalanceSec === "number") {
+            updateCreditsBalance(r.creditsBalanceSec);
+          }
           return;
         }
         if (r.status === 'expired') {

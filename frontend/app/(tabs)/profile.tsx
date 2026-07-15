@@ -13,18 +13,15 @@ import { api } from '../../lib/api';
 export default function Profile() {
   const { c, theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const { user, creditsBalanceSec, signOut, refresh } = useAuth();
+  const { user, creditsBalanceSec, signOut } = useAuth();
   const [ledger, setLedger] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
   const [section, setSection] = useState<'identity' | 'preferences' | 'membership' | 'legal'>('identity');
 
   useFocusEffect(useCallback(() => {
     (async () => {
       try {
-        const [l, t] = await Promise.all([api.get('/credits/ledger'), api.get('/tasks')]);
+        const l = await api.get("/credits/ledger");
         setLedger(l.items || []);
-        setTasks(t.items || []);
-        await refresh();
       } catch {}
     })();
   }, []));

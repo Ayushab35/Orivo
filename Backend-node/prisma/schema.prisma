@@ -38,16 +38,6 @@ model OTPSession {
   @@index([phone])
 }
 
-model DailyOutlook {
-  id         String   @id @map("_id") @default(auto()) @db.ObjectId
-  userId     String
-  date       String
-  favorable   Json
-  caution     Json
-  createdAt  DateTime @default(now())
-
-  @@unique([userId, date])
-}
 
 model Report {
   id        String   @id @map("_id") @default(auto()) @db.ObjectId
@@ -60,6 +50,7 @@ model Report {
   @@unique([userId, moduleKey])
 }
 
+# segragate this for choghadia --> based on location and color as static data (common for all) --> independent of userId
 model DailyReport {
   id                    String   @id @map("_id") @default(auto()) @db.ObjectId
   userId                String
@@ -68,8 +59,6 @@ model DailyReport {
   dayDescription        Json?
   color                 Json?
   choghadia             Json?
-  decisionWindows       Json?
-  currentPeriod         Json?
   generatedAt           DateTime?
   dailyLoginBonusGranted Boolean?
   createdAt             DateTime @default(now())
@@ -190,13 +179,4 @@ model PersonalityReport {
   content     Json
   generatedAt DateTime @default(now())
   version     Int
-}
-
-model Decision {
-  id        String   @id @map("_id") @default(auto()) @db.ObjectId
-  userId    String
-  title     String
-  context   String?
-  decision  String?
-  createdAt DateTime @default(now())
 }

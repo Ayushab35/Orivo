@@ -14,8 +14,8 @@ import {
 import { advisorReply } from "../services/advisorService";
 import { AppError } from "../errors/AppError";
 import { config } from "../config";
-import { computeDailyOutlook, numerologyProfile } from "../utils/astrology";
-import { buildDecisionWindows, colorOfTheDay } from "../utils/choghadia";
+import { numerologyProfile } from "../utils/astrology";
+import { colorOfTheDay } from "../utils/choghadia";
 import { currentPeriod } from "../utils/decision_intel";
 import { computeRoleFit } from "../utils/role_fit";
 import { decryptDict } from "../services/encryptionService";
@@ -101,7 +101,7 @@ export async function searchCities(
         addressdetails: 1,
         limit: 8,
       },
-      headers: { "User-Agent": "Orivo/1.0 (contact@orivo.app)" },
+      headers: { "User-Agent": "Orivo/1.0 (contact@orivo.life)" },
       timeout: 8000,
     });
     const data = Array.isArray(response.data) ? response.data : [];
@@ -125,60 +125,6 @@ export async function searchCities(
       };
     });
     return res.json({ results });
-  } catch (error) {
-    return next(error);
-  }
-}
-
-export async function outlookToday(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-    const today = new Date();
-    const dateKey = today.toISOString().slice(0, 10);
-    const existing = await prisma.dailyOutlook.findFirst({
-      where: { userId, date: dateKey },
-    });
-    if (existing) {
-      return res.json({
-        ...existing,
-        id: existing.id,
-        date: existing.date,
-        favorable: existing.favorable,
-        caution: existing.caution,
-      });
-    }
-
-    const outlook = computeDailyOutlook(
-      {
-        date: user.birthDate,
-        time: user.birthTime,
-        lat: user.birthLat,
-        lng: user.birthLng,
-      },
-      today,
-    );
-    const doc = await prisma.dailyOutlook.create({
-      data: {
-        userId,
-        date: dateKey,
-        favorable: outlook.favorable as any,
-        caution: outlook.caution as any,
-      },
-    });
-    return res.json({
-      id: doc.id,
-      date: doc.date,
-      favorable: doc.favorable,
-      caution: doc.caution,
-    });
   } catch (error) {
     return next(error);
   }
@@ -464,35 +410,50 @@ export async function paymentStatus(
   try {
     const userId = (req as any).userId as string;
     const sessionId = String(req.params.sessionId || "");
+
     const stripeClient = getStripeClient();
+
     const txn = await prisma.paymentTransaction.findUnique({
       where: { sessionId },
     });
+
     if (!txn) {
       throw new AppError("Transaction not found", 404);
     }
+
     const session = await stripeClient.checkout.sessions.retrieve(sessionId);
+
     const paymentStatusVal = session.payment_status ?? "unpaid";
     const statusVal = session.status ?? "open";
+
     const alreadyCredited = txn.status === "completed";
-    if (paymentStatusVal === "paid" && !alreadyCredited) {
-      const creditsSec =
-        txn.creditsSec ?? Number(session.metadata?.creditsSec ?? 0);
-      if (creditsSec > 0) {
-        await userService.addCredits(
-          userId,
-          creditsSec,
-          `purchase:${txn.packageId}`,
-        );
+
+    let balance: number | null = null;
+
+    if (paymentStatusVal === "paid") {
+      if (!alreadyCredited) {
+        const creditsSec =
+          txn.creditsSec ?? Number(session.metadata?.creditsSec ?? 0);
+
+        if (creditsSec > 0) {
+          await userService.addCredits(
+            userId,
+            creditsSec,
+            `purchase:${txn.packageId}`,
+          );
+        }
+
+        await prisma.paymentTransaction.update({
+          where: { sessionId },
+          data: {
+            status: "completed",
+            paymentStatus: "paid",
+            updatedAt: new Date(),
+          },
+        });
       }
-      await prisma.paymentTransaction.update({
-        where: { sessionId },
-        data: {
-          status: "completed",
-          paymentStatus: "paid",
-          updatedAt: new Date(),
-        },
-      });
+
+      balance = await userService.getCreditBalance(userId);
     } else if (statusVal === "expired") {
       await prisma.paymentTransaction.update({
         where: { sessionId },
@@ -503,12 +464,14 @@ export async function paymentStatus(
         },
       });
     }
+
     return res.json({
       status: statusVal,
       payment_status: paymentStatusVal,
       amount_total: session.amount_total,
       currency: session.currency,
       creditsAwarded: alreadyCredited || paymentStatusVal === "paid",
+      creditsBalanceSec: balance,
     });
   } catch (error) {
     return next(error);
@@ -732,12 +695,6 @@ export async function dashboardToday(
       where: { userId, date: dateKey },
     });
 
-    const choghadiaCache = await prisma.astroCache.findFirst({
-      where: { userId, kind: "choghadia", date: dateKey },
-    });
-    const choghadia =
-      choghadiaCache?.payload ?? buildDecisionWindows({ good: [], avoid: [] });
-
     if (existingReport) {
       const result = {
         id: existingReport.id,
@@ -747,9 +704,6 @@ export async function dashboardToday(
         dayDescription: existingReport.dayDescription,
         color: existingReport.color,
         choghadia: existingReport.choghadia,
-        decisionWindows:
-          existingReport.decisionWindows ??
-          buildDecisionWindows(existingReport.choghadia),
         currentPeriod:
           existingReport.currentPeriod ??
           currentPeriod(
@@ -770,7 +724,6 @@ export async function dashboardToday(
     const color = colorOfTheDay(today);
     const chartDoc = await prisma.d1Chart.findUnique({ where: { userId } });
     const chart = chartDoc ? decryptDict(chartDoc.chartEnc) : null;
-    const decisionWindows = buildDecisionWindows(choghadia);
     const currentPeriodData = currentPeriod(
       {
         date: user.birthDate,
@@ -796,7 +749,7 @@ export async function dashboardToday(
         },
       },
       color,
-      choghadia,
+      // choghadia,
       chart,
     );
 
@@ -807,8 +760,8 @@ export async function dashboardToday(
         dayName: today.toLocaleDateString("en-US", { weekday: "long" }),
         dayDescription: daily as any,
         color: color as any,
-        choghadia: choghadia as any,
-        decisionWindows: decisionWindows as any,
+        // choghadia: choghadia as any,
+        // decisionWindows: decisionWindows as any,
         currentPeriod: currentPeriodData as any,
         generatedAt: new Date(),
         updatedAt: new Date(),

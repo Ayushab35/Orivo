@@ -56,34 +56,6 @@ export function computeChoghadia(target: Date) {
   };
 }
 
-export function buildDecisionWindows(choghadia: any) {
-  const goodNotes = [
-    "Best for negotiations, important meetings, or strategic alignment.",
-    "Strong window for approvals, briefing the team, or moving a stalled decision forward.",
-  ];
-  const avoidNotes = [
-    "Avoid high-stakes commitments; use this time to review, prep, and lower risk.",
-    "Not ideal for major decisions; keep this slot for follow-up or quiet execution.",
-  ];
-
-  return {
-    good: (choghadia.good || [])
-      .slice(0, 2)
-      .map((slot: any, index: number) => ({
-        start: slot.start,
-        end: slot.end,
-        note: goodNotes[index] ?? goodNotes[goodNotes.length - 1],
-      })),
-    avoid: (choghadia.avoid || [])
-      .slice(0, 2)
-      .map((slot: any, index: number) => ({
-        start: slot.start,
-        end: slot.end,
-        note: avoidNotes[index] ?? avoidNotes[avoidNotes.length - 1],
-      })),
-  };
-}
-
 export function colorOfTheDay(target: Date) {
   const DAY_COLOR = [
     {
