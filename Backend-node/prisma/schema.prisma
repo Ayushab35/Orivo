@@ -50,7 +50,6 @@ model Report {
   @@unique([userId, moduleKey])
 }
 
-# segragate this for choghadia --> based on location and color as static data (common for all) --> independent of userId
 model DailyReport {
   id                    String   @id @map("_id") @default(auto()) @db.ObjectId
   userId                String

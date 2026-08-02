@@ -7,8 +7,8 @@ import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import AstrologyLoader from "../components/AstrologyLoader";
 
-const BIRTH_CHART_CACHE_KEY = "orivo.birthChart";
-const PROFILE_STORAGE_KEY = "orivo.birthProfile";
+const BIRTH_CHART_CACHE_KEY = (userId: string) => `orivo.birthChart.${userId}`;
+const PROFILE_STORAGE_KEY = (userId: string) => `orivo.birthProfile.${userId}`;
 
 function OrivoSplash() {
   return (
@@ -80,129 +80,8 @@ function OrivoSplash() {
   );
 }
 
-// export default function Splash() {
-//   const { c } = useTheme();
-//   const { ready, user } = useAuth();
-//   const [loadingAstro, setLoadingAstro] = useState(false);
-//   const [astroReady, setAstroReady] = useState(false);
-//   const [minimumSplashDone, setMinimumSplashDone] = useState(false);
-
-//   useEffect(() => {
-//     if (!ready || !user || !user.onboarded) return;
-
-//     let cancelled = false;
-
-//     const preloadBirthChart = async () => {
-//       try {
-//         const cached = await AsyncStorage.getItem(BIRTH_CHART_CACHE_KEY);
-
-//         if (cached) {
-//           if (!cancelled) {
-//             setAstroReady(true);
-//           }
-//           return;
-//         }
-
-//         setLoadingAstro(true);
-
-//         const storedProfileRaw =
-//           await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
-//         const storedProfile = storedProfileRaw
-//           ? JSON.parse(storedProfileRaw)
-//           : null;
-//         console.log(
-//           "Preloading birth chart with stored profile:",
-//           storedProfileRaw,
-//           storedProfile,
-//         );
-//         const payload: Record<string, any> = {
-//           day: undefined,
-//           month: undefined,
-//           year: undefined,
-//           hour: undefined,
-//           minute: undefined,
-//           lat: undefined,
-//           lon: undefined,
-//           tzone: undefined,
-//         };
-
-//         if (storedProfile?.birthDate) {
-//           const [year, month, day] = storedProfile.birthDate
-//             .split("-")
-//             .map((value: string) => Number(value));
-//           if (
-//             !Number.isNaN(year) &&
-//             !Number.isNaN(month) &&
-//             !Number.isNaN(day)
-//           ) {
-//             payload.day = day;
-//             payload.month = month;
-//             payload.year = year;
-//           }
-//         }
-
-//         if (storedProfile?.birthTime) {
-//           const [hour, minute] = storedProfile.birthTime
-//             .split(":")
-//             .map((value: string) => Number(value));
-//           if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
-//             payload.hour = hour;
-//             payload.minute = minute;
-//           }
-//         }
-
-//         if (storedProfile?.birthLat != null)
-//           payload.lat = Number(storedProfile.birthLat);
-//         if (storedProfile?.birthLng != null)
-//           payload.lon = Number(storedProfile.birthLng);
-//         console.log("Preloading birth chart with payload:", payload);
-//         const chart = await api.post("/astro/birth-chart", payload);
-//         await AsyncStorage.setItem(
-//           BIRTH_CHART_CACHE_KEY,
-//           JSON.stringify(chart),
-//         );
-//       } catch (error) {
-//         await AsyncStorage.setItem(
-//           BIRTH_CHART_CACHE_KEY,
-//           JSON.stringify({ fallback: true, error: String(error) }),
-//         );
-//       } finally {
-//         if (!cancelled) {
-//           setLoadingAstro(false);
-//           setAstroReady(true);
-//         }
-//       }
-//     };
-
-//     preloadBirthChart();
-//     return () => {
-//       cancelled = true;
-//     };
-//   }, [ready, user]);
-
-//   useEffect(() => {
-//     const timer = setTimeout(() => {
-//       setMinimumSplashDone(true);
-//     }, 1500);
-
-//     return () => clearTimeout(timer);
-//   }, []);
-
-//   if (!minimumSplashDone || loadingAstro || !astroReady) {
-//     return <OrivoSplash />;
-//   }
-
-//   if (!user) return <Redirect href="/onboarding" />;
-//   if (!user.onboarded) return <Redirect href="/birth-details" />;
-//   if (loadingAstro || !astroReady) return <AstrologyLoader />;
-//   return <Redirect href="/(tabs)/dashboard" />;
-// }
 export default function Splash() {
   const { ready, user } = useAuth();
-  console.log("AUTH STATE", {
-    ready,
-    user,
-  });
   const [loadingAstro, setLoadingAstro] = useState(false);
   const [astroReady, setAstroReady] = useState(false);
   const [minimumSplashDone, setMinimumSplashDone] = useState(false);
@@ -234,7 +113,9 @@ export default function Splash() {
 
     const preloadBirthChart = async () => {
       try {
-        const cached = await AsyncStorage.getItem(BIRTH_CHART_CACHE_KEY);
+        const birthChartKey = BIRTH_CHART_CACHE_KEY(user.id);
+        const profileStorageKey = PROFILE_STORAGE_KEY(user.id);
+        const cached = await AsyncStorage.getItem(birthChartKey);
 
         if (cached) {
           if (!cancelled) {
@@ -246,7 +127,7 @@ export default function Splash() {
         setLoadingAstro(true);
 
         const storedProfileRaw =
-          await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+          await AsyncStorage.getItem(profileStorageKey);
 
         const storedProfile = storedProfileRaw
           ? JSON.parse(storedProfileRaw)
@@ -297,16 +178,17 @@ export default function Splash() {
         console.log("Preloading birth chart payload:", payload);
 
         const chart = await api.post("/astro/birth-chart", payload);
+        console.log("The chart is : {index}", chart);
 
         await AsyncStorage.setItem(
-          BIRTH_CHART_CACHE_KEY,
+          birthChartKey,
           JSON.stringify(chart),
         );
       } catch (error) {
         console.error("Birth chart preload failed:", error);
 
         await AsyncStorage.setItem(
-          BIRTH_CHART_CACHE_KEY,
+          BIRTH_CHART_CACHE_KEY(user.id),
           JSON.stringify({
             fallback: true,
             error: String(error),

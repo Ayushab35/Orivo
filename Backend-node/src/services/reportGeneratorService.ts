@@ -90,7 +90,6 @@ function profileBlurb(user: any, chart: any) {
 export async function generateDailyDescription(
   user: any,
   dayColor: any,
-  // choghadia: any,
   chart: any,
 ) {
   const client = new LLMClient();
@@ -119,6 +118,7 @@ export async function generateSoulReport(user: any, chart: any) {
   if (!client.available) {
     return SOUL_FALLBACK;
   }
+  
   const prompt = `${profileBlurb(user, chart)}\n\nGenerate the 'Soul Purpose & Potential Profession' report. Output must exactly match JSON keys: soulPurpose, purposeThemes, primaryProfession, alternativeProfessions, avoidProfessions, reasoning, signals.`;
   const resp = await client.generateJson(
     "You are an executive advisor writing for a C-suite founder. Tone: private-banking + McKinsey. Translate underlying astrological signals into calm business language. Forbidden vocabulary: horoscope, zodiac, planet names, dasha, nakshatra, yoga, transit, lucky, mystical, spiritual. Every output must be strict JSON.",

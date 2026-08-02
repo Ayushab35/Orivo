@@ -117,12 +117,37 @@ export async function getBirthChart(
   next: NextFunction,
 ) {
   try {
+    console.log("Received request for birth chart:", req.body);
+    const userId = (req as any).userId as string;
+
+    // Return cached chart if available
+    const cachedChart = await prisma.d1Chart.findUnique({
+      where: { userId },
+    });
+
+    if (cachedChart) {
+      const payload = decryptDict(cachedChart.chartEnc) || {};
+
+      return res.json({
+        ok: true,
+        cached: true,
+        provider: cachedChart.provider,
+        chart: payload.chart,
+        calculations: payload.calculations,
+        updatedAt: cachedChart.updatedAt?.toISOString() ?? null,
+      });
+    }
+
     if (!config.astrologyApiKey) {
       throw new AppError("Astrology API key is not configured", 503);
     }
-    const userId = (req as any).userId as string;
+
     const params = parseChartParams(req);
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
     const birth = user
       ? {
           date: user.birthDate,
@@ -133,6 +158,7 @@ export async function getBirthChart(
       : null;
 
     let { day, month, year, hour, minute, lat, lon, tzone } = params;
+
     if (
       day == null ||
       month == null ||
@@ -151,8 +177,10 @@ export async function getBirthChart(
       ) {
         throw new AppError("Birth details required", 400);
       }
+
       const [dayStr, monthStr, yearStr] = birth.date.split("-");
       const [hourStr, minuteStr] = birth.time.split(":");
+
       day = Number(dayStr);
       month = Number(monthStr);
       year = Number(yearStr);
@@ -161,6 +189,7 @@ export async function getBirthChart(
       lat = birth.lat;
       lon = birth.lng;
     }
+
     if (tzone == null) {
       tzone = config.timezoneDefault;
     }
@@ -185,7 +214,32 @@ export async function getBirthChart(
         timeout: 15000,
       },
     );
-    return res.json({ ok: true, chart: response.data });
+
+    const chart = response.data;
+
+    const encrypted = encryptDict({
+      chart,
+      calculations: {},
+    });
+
+    if (!encrypted) {
+      throw new AppError("Encryption failed", 500);
+    }
+    console.log("Saving encrypted chart for user:", encrypted);
+    await prisma.d1Chart.create({
+      data: {
+        userId,
+        provider: "astrologyapi",
+        chartEnc: encrypted,
+        encrypted: encryptionReady(),
+      },
+    });
+    console.log("Saved encrypted chart for user:", userId);
+    return res.json({
+      ok: true,
+      cached: false,
+      chart,
+    });
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       return next(
@@ -195,76 +249,7 @@ export async function getBirthChart(
         ),
       );
     }
-    return next(error);
-  }
-}
 
-export async function upsertD1Chart(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const { provider, chart, calculations } = req.body as {
-      provider: string;
-      chart: any;
-      calculations?: any;
-    };
-    if (!provider || !chart) {
-      throw new AppError("provider and chart are required", 400);
-    }
-    const encrypted = encryptDict({ chart, calculations: calculations ?? {} });
-    if (!encrypted) {
-      throw new AppError("Encryption failed", 500);
-    }
-    await prisma.d1Chart.upsert({
-      where: { userId },
-      update: {
-        provider,
-        chartEnc: encrypted,
-        encrypted: encryptionReady(),
-        updatedAt: new Date(),
-      },
-      create: {
-        userId,
-        provider,
-        chartEnc: encrypted,
-        encrypted: encryptionReady(),
-        updatedAt: new Date(),
-        createdAt: new Date(),
-      },
-    });
-    await prisma.dailyReport.deleteMany({ where: { userId } });
-    await prisma.soulReport.deleteMany({ where: { userId } });
-    await prisma.personalityReport.deleteMany({ where: { userId } });
-    return res.json({ ok: true, encrypted: encryptionReady() });
-  } catch (error) {
-    return next(error);
-  }
-}
-
-export async function getD1Chart(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const doc = await prisma.d1Chart.findUnique({ where: { userId } });
-    if (!doc) {
-      return res.json({ cached: false, chart: null });
-    }
-    const payload = decryptDict(doc.chartEnc) || {};
-    return res.json({
-      cached: true,
-      provider: doc.provider,
-      chart: payload.chart,
-      calculations: payload.calculations,
-      encrypted: Boolean(doc.encrypted),
-      updatedAt: doc.updatedAt?.toISOString() ?? null,
-    });
-  } catch (error) {
     return next(error);
   }
 }

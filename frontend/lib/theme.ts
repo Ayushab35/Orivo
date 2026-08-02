@@ -5,36 +5,13 @@ export type ThemeName = 'light' | 'dark';
  * Dark-first. Muted, calm, premium. No shiny gold, no purple, no astrology clichés.
  */
 export const colors = {
-  // dark: {
-  //   bg: '#0F111A',           // almost black
-  //   bgInset: '#0B0D14',
-  //   surface: '#1B2033',      // deep navy
-  //   surfaceAlt: '#232A42',
-  //   surfaceMuted: '#161A28',
-  //   primary: '#E8EAF2',      // off-white ink for cta-on-dark
-  //   primaryInk: '#0F111A',
-  //   teal: '#3FA68E',         // calm signal green
-  //   gold: '#C9A961',         // muted executive gold (not shiny)
-  //   goldInk: '#0F111A',
-  //   terracotta: '#C17A52',
-  //   textPrimary: '#F1F2F6',
-  //   textSecondary: '#8A8FA3',
-  //   textMuted: '#5A5F73',
-  //   border: '#262C40',
-  //   borderStrong: '#323954',
-  //   overlay: 'rgba(255,255,255,0.04)',
-  //   danger: '#D88271',
-  //   positive: '#3FA68E',
-  //   score: '#C9A961',
-  //   accent: '#7B8CFF',       // restrained analytical blue, used sparingly
-  // },
   dark: {
-    bg: "#161B26", // was #0F111A
-    bgInset: "#121722", // was #0B0D14
+    bg: "#161B26", 
+    bgInset: "#121722",
 
-    surface: "#232A3D", // was #1B2033
-    surfaceAlt: "#2B334A", // was #232A42
-    surfaceMuted: "#1D2333", // was #161A28
+    surface: "#232A3D", 
+    surfaceAlt: "#2B334A", 
+    surfaceMuted: "#1D2333",
 
     primary: "#E8EAF2",
     primaryInk: "#161B26",
@@ -58,10 +35,9 @@ export const colors = {
     positive: "#46B097",
     score: "#C9A961",
 
-    accent: "#8B99FF", // slightly brighter analytical blue
+    accent: "#8B99FF"
   },
   light: {
-    // Kept for users who toggle, but designed to still feel reserved.
     bg: "#F5F4EF",
     bgInset: "#EDEBE2",
     surface: "#FFFFFF",

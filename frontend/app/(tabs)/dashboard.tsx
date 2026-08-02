@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -22,9 +22,11 @@ import { api } from "../../lib/api";
 import { cacheGet, cacheSet } from "../../lib/cache";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TODAY_KEY = () => `dashboard.${new Date().toISOString().slice(0, 10)}`;
+const TODAY_KEY = (userId: string) => `dashboard.${userId}.${new Date().toISOString().slice(0, 10)}`;
 const CHOGHADIA_KEY = () =>
   `choghadia.${new Date().toISOString().slice(0, 10)}`;
+const BIRTH_CHART_CACHE_KEY = (userId: string) => `orivo.birthChart.${userId}`;
+const PROFILE_STORAGE_KEY = (userId: string) => `orivo.birthProfile.${userId}`;
 
 function getDashboardChoghadia(day: any[] = []) {
   const rows: any[] = [];
@@ -51,7 +53,7 @@ function getDashboardChoghadia(day: any[] = []) {
 export default function Dashboard() {
   const { c } = useTheme();
   const router = useRouter();
-  const { user, creditsBalanceSec, refresh } = useAuth();
+  const { user, creditsBalanceSec, ready } = useAuth();
   const [data, setData] = useState<any>(null);
   const [chogApi, setChogApi] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -94,14 +96,29 @@ export default function Dashboard() {
 
   const load = async () => {
     try {
-      const cached = await cacheGet<any>(TODAY_KEY());
-      if (cached) {
-        setData(cached);
-        setLoading(false);
+      if (user?.id) {
+        const cached = await cacheGet<any>(TODAY_KEY(user.id));
+        if (cached) {
+          setData(cached);
+          setLoading(false);
+        }
       }
       // Ensure we have a stored location; if not, ask for permission first
       const locRaw = await AsyncStorage.getItem("orivo.location");
-      console.log("locRaw", locRaw);
+      
+      const birthChartKey = user?.id
+        ? `orivo.birthChart.${user.id}`
+        : 'orivo.birthChart';
+      const chart = await AsyncStorage.getItem(birthChartKey);
+      console.log("The chart is : {dashboard}", chart);
+
+      if (JSON.parse(chart)?.error || JSON.parse(chart)?.fallback) {
+        console.log("Birth chart error found, clearing cache");
+        await AsyncStorage.removeItem(birthChartKey);
+      }
+        //////////////////////////////////
+
+        console.log("locRaw", locRaw);
       if (!locRaw) {
         router.push("/location-permission");
         return;
@@ -126,7 +143,7 @@ export default function Dashboard() {
           const ch = await api.get(
             `/astro/choghadia?date=${date}&lat=${lat}&lon=${lon}`,
           );
-
+          console.log("choghadia is : {}", ch);
           const payload = ch.payload || ch;
 
           setChogApi(payload);
@@ -144,8 +161,11 @@ export default function Dashboard() {
       }
 
       const b = await api.get("/dashboard/today");
+      console.log("Fetched dashboard today:", b);
       setData(b);
-      await cacheSet(TODAY_KEY(), b, 1000 * 60 * 60 * 6);
+      if (user?.id) {
+        await cacheSet(TODAY_KEY(user.id), b, 1000 * 60 * 60 * 6);
+      }
       if (b.dailyLoginBonusGranted) showBonus();
     } catch {}
   };
@@ -162,8 +182,93 @@ export default function Dashboard() {
   const onRefresh = async () => {
     setRefreshing(true);
     await load();
+    await preloadBirthChart(); 
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    const a = async () => {
+      await preloadBirthChart();
+    };
+    a();
+  }, [data]);
+
+  const preloadBirthChart = async () => {
+    try {
+      const birthChartKey = BIRTH_CHART_CACHE_KEY(user.id);
+      const profileStorageKey = PROFILE_STORAGE_KEY(user.id);
+      const cached = await AsyncStorage.getItem(birthChartKey);
+
+      if (cached) {
+        return;
+      }
+
+      const storedProfileRaw = await AsyncStorage.getItem(profileStorageKey);
+
+      const storedProfile = storedProfileRaw
+        ? JSON.parse(storedProfileRaw)
+        : null;
+
+      console.log(
+        "Preloading birth chart with stored profile:",
+        storedProfile,
+      );
+
+      const payload: Record<string, any> = {};
+
+      if (storedProfile?.birthDate) {
+        const [year, month, day] = storedProfile.birthDate
+          .split("-")
+          .map((v: string) => Number(v));
+
+        if (
+          !Number.isNaN(year) &&
+          !Number.isNaN(month) &&
+          !Number.isNaN(day)
+        ) {
+          payload.day = day;
+          payload.month = month;
+          payload.year = year;
+        }
+      }
+
+      if (storedProfile?.birthTime) {
+        const [hour, minute] = storedProfile.birthTime
+          .split(":")
+          .map((v: string) => Number(v));
+
+        if (!Number.isNaN(hour) && !Number.isNaN(minute)) {
+          payload.hour = hour;
+          payload.minute = minute;
+        }
+      }
+
+      if (storedProfile?.birthLat != null) {
+        payload.lat = Number(storedProfile.birthLat);
+      }
+
+      if (storedProfile?.birthLng != null) {
+        payload.lon = Number(storedProfile.birthLng);
+      }
+
+      console.log("Preloading birth chart payload:", payload);
+
+      const chart = await api.post("/astro/birth-chart", payload);
+      console.log("The chart is : {dashboard useEffect}", chart);
+
+      await AsyncStorage.setItem(birthChartKey, JSON.stringify(chart));
+    } catch (error) {
+      console.error("Birth chart preload failed:", error);
+
+      await AsyncStorage.setItem(
+        BIRTH_CHART_CACHE_KEY(user.id),
+        JSON.stringify({
+          fallback: true,
+          error: String(error),
+        }),
+      );
+    }
+  }
 
   const dateObj = data?.date ? new Date(data.date) : new Date();
   const dayName =

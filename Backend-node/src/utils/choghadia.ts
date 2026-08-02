@@ -59,41 +59,41 @@ export function computeChoghadia(target: Date) {
 export function colorOfTheDay(target: Date) {
   const DAY_COLOR = [
     {
-      name: "Pearl White",
-      hex: "#F4EEDF",
-      reason: "composed, receptive, negotiation-friendly.",
+      name: "Saffron",
+      hex: "#F4A300",
+      reason: "Represents confidence, leadership, vitality, and success.",
     },
     {
-      name: "Deep Crimson",
-      hex: "#8B1E2E",
-      reason: "decisive posture, assertive rooms.",
+      name: "White",
+      hex: "#F8F8F8",
+      reason: "Brings calmness, emotional balance, peace, and clarity.",
     },
     {
-      name: "Emerald",
-      hex: "#1E6E52",
-      reason: "sharpen communication and analysis.",
+      name: "Red",
+      hex: "#D32F2F",
+      reason: "Encourages courage, determination, strength, and action.",
     },
     {
-      name: "Saffron Gold",
-      hex: "#B8862A",
-      reason: "advisory posture, strategic depth.",
+      name: "Green",
+      hex: "#2E7D32",
+      reason: "Supports communication, learning, intelligence, and growth.",
     },
     {
-      name: "Ivory Cream",
-      hex: "#EDE2CC",
-      reason: "trust-building, hospitality, brand work.",
+      name: "Yellow",
+      hex: "#FBC02D",
+      reason: "Symbolizes wisdom, optimism, prosperity, and knowledge.",
     },
     {
-      name: "Charcoal Indigo",
-      hex: "#1E2436",
-      reason: "discipline, systems, quiet execution.",
+      name: "Cream",
+      hex: "#FFF3E0",
+      reason: "Enhances love, harmony, creativity, beauty, and comfort.",
     },
     {
-      name: "Warm Amber",
-      hex: "#C88F3A",
-      reason: "command tones, boardroom energy.",
+      name: "Dark Blue",
+      hex: "#1E3A5F",
+      reason:
+        "Represents discipline, patience, responsibility, and perseverance.",
     },
   ];
-
   return DAY_COLOR[target.getDay()];
 }

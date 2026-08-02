@@ -3,15 +3,11 @@ import { requireAuth } from "../middleware/auth";
 import {
   getChoghadia,
   getBirthChart,
-  upsertD1Chart,
-  getD1Chart,
 } from "../controllers/astroController";
 
 const router = Router();
 
 router.get("/choghadia", requireAuth, getChoghadia);
-router.post("/d1-chart", requireAuth, upsertD1Chart);
-router.get("/d1-chart", requireAuth, getD1Chart);
 router.post("/birth-chart", requireAuth, getBirthChart);
 
 export default router;

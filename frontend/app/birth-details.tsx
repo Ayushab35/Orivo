@@ -12,12 +12,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INDUSTRIES = ['Technology', 'Finance', 'Healthcare', 'Manufacturing', 'Retail', 'Energy', 'Real Estate', 'Media', 'Consulting', 'Other'];
 const ROLES = ['Founder / CEO', 'Co-founder', 'CFO', 'COO', 'CTO', 'President', 'Managing Partner', 'Board Member'];
-const PROFILE_STORAGE_KEY = 'orivo.birthProfile';
+const PROFILE_STORAGE_KEY = (userId?: string) =>
+  userId ? `orivo.birthProfile.${userId}` : 'orivo.birthProfile';
 
 export default function BirthDetails() {
   const { c } = useTheme();
   const router = useRouter();
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const [name, setName] = useState('');
   const [role, setRole] = useState('Founder / CEO');
   const [businessName, setBusinessName] = useState('');
@@ -79,7 +80,7 @@ export default function BirthDetails() {
         birthLng: city!.lng,
       };
 
-      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileData));
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY(user?.id), JSON.stringify(profileData));
       await api.post('/auth/birth-details', profileData);
       updateUser({
         name,
