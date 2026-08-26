@@ -1,55 +1,9 @@
-export interface Planet {
-  id: number;
-  name: PlanetName;
-  sign: ZodiacSign;
-  house: number;
-  fullDegree?: number;
-  normDegree?: number;
-}
-
-export interface GoalOrientationResult {
-  score: number;
-  category: string;
-  breakdown: {
-    dignity: number;
-    upperHemisphere: number;
-    upachaya: number;
-    mars: number;
-    saturn: number;
-    sun: number;
-    tenthLord: number;
-    eleventhLord: number;
-    dharmaArtha: number;
-    rajYoga: number;
-  };
-  insights: string[];
-}
-
-export type ZodiacSign =
-  | "Aries"
-  | "Taurus"
-  | "Gemini"
-  | "Cancer"
-  | "Leo"
-  | "Virgo"
-  | "Libra"
-  | "Scorpio"
-  | "Sagittarius"
-  | "Capricorn"
-  | "Aquarius"
-  | "Pisces";
-
-export type PlanetName =
-  | "Sun"
-  | "Moon"
-  | "Mars"
-  | "Mercury"
-  | "Jupiter"
-  | "Venus"
-  | "Saturn"
-  | "Rahu"
-  | "Ketu"
-  | "Ascendant";
+import type {
+  GoalOrientationResult,
+  Planet,
+  PlanetName,
+  ZodiacSign,
+} from "../reports/soulReport/types";
 
 const SIGNS: ZodiacSign[] = [
   "Aries",

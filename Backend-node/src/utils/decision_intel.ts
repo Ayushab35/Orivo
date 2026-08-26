@@ -113,35 +113,35 @@ export function currentPeriod(userBirth: any, target: Date) {
   };
 }
 
-export function decisionIndex(choghadia: any, currentPeriod: any) {
-  const momentum =
-    50 + Math.min(50, Math.max(0, (choghadia.good?.length ?? 0) * 10));
-  const clarity =
-    40 + Math.min(50, Math.max(0, (choghadia.avoid?.length ?? 0) * 5));
-  const energy =
-    50 + Math.min(40, Math.max(0, 10 - (choghadia.avoid?.length ?? 0) * 2));
-  const riskTolerance =
-    45 + Math.min(40, Math.max(0, (currentPeriod?.progressPct ?? 0) / 2));
-  const score = Math.min(
-    96,
-    Math.max(35, Math.round((momentum + clarity + energy + riskTolerance) / 4)),
-  );
-  const allowed = [
-    "Review the highest-priority decision you can complete today.",
-    "Use the strongest window for stakeholder alignment.",
-    "Prepare a follow-up ask before making a commitment.",
-  ];
-  const avoid = [
-    "Avoid hard yes/no choices in the weaker slots.",
-    "Delay announcements until your message is sharper.",
-  ];
-  const tone = score >= 70 ? "positive" : score >= 50 ? "neutral" : "caution";
-  return {
-    score,
-    label: `${score}% decision readiness`,
-    tone,
-    components: { momentum, clarity, energy, riskTolerance },
-    allowed,
-    avoid,
-  };
-}
+// export function decisionIndex(choghadia: any, currentPeriod: any) {
+//   const momentum =
+//     50 + Math.min(50, Math.max(0, (choghadia.good?.length ?? 0) * 10));
+//   const clarity =
+//     40 + Math.min(50, Math.max(0, (choghadia.avoid?.length ?? 0) * 5));
+//   const energy =
+//     50 + Math.min(40, Math.max(0, 10 - (choghadia.avoid?.length ?? 0) * 2));
+//   const riskTolerance =
+//     45 + Math.min(40, Math.max(0, (currentPeriod?.progressPct ?? 0) / 2));
+//   const score = Math.min(
+//     96,
+//     Math.max(35, Math.round((momentum + clarity + energy + riskTolerance) / 4)),
+//   );
+//   const allowed = [
+//     "Review the highest-priority decision you can complete today.",
+//     "Use the strongest window for stakeholder alignment.",
+//     "Prepare a follow-up ask before making a commitment.",
+//   ];
+//   const avoid = [
+//     "Avoid hard yes/no choices in the weaker slots.",
+//     "Delay announcements until your message is sharper.",
+//   ];
+//   const tone = score >= 70 ? "positive" : score >= 50 ? "neutral" : "caution";
+//   return {
+//     score,
+//     label: `${score}% decision readiness`,
+//     tone,
+//     components: { momentum, clarity, energy, riskTolerance },
+//     allowed,
+//     avoid,
+//   };
+// }

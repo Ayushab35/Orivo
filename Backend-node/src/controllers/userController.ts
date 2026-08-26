@@ -8,7 +8,7 @@ import * as userService from "../services/userService";
 import * as reportService from "../services/reportService";
 import {
   generateDailyDescription,
-  generateSoulReport,
+  generateSoulReports,
   generateInnerProfile,
 } from "../services/reportGeneratorService";
 import { advisorReply } from "../services/advisorService";
@@ -16,10 +16,12 @@ import { AppError } from "../errors/AppError";
 import { config } from "../config";
 import { numerologyProfile } from "../utils/astrology";
 import { colorOfTheDay } from "../utils/choghadia";
-import { currentPeriod } from "../utils/decision_intel";
 import { computeRoleFit } from "../utils/role_fit";
-import { decryptDict } from "../services/encryptionService";
 import { PACKAGES } from "../seed_data";
+import {
+  getBirthChart,
+  fetchVimshottariDashaForBirth,
+} from "../controllers/astroController";
 
 function getStripeClient() {
   if (!config.stripeSecretKey) {
@@ -666,7 +668,7 @@ export async function dashboardToday(
     if (!user) {
       throw new AppError("User not found", 404);
     }
-
+    console.log("The user is : ", user);
     const today = new Date();
     const dateKey = today.toISOString().slice(0, 10);
     const loginScope = `daily_login:${dateKey}`;
@@ -696,6 +698,8 @@ export async function dashboardToday(
     });
 
     if (existingReport) {
+      const dasha = await fetchVimshottariDashaForBirth({date: user.birthDate, time: user.birthTime, lat: user.birthLat, lng: user.birthLng}, req.body, userId);
+      console.log("Vimshottari Dasha fetched for user:", userId, "dasha:", dasha);
       const result = {
         id: existingReport.id,
         userId: existingReport.userId,
@@ -704,17 +708,7 @@ export async function dashboardToday(
         dayDescription: existingReport.dayDescription,
         color: existingReport.color,
         choghadia: existingReport.choghadia,
-        currentPeriod:
-          existingReport.currentPeriod ??
-          currentPeriod(
-            {
-              date: user.birthDate,
-              time: user.birthTime,
-              lat: user.birthLat,
-              lng: user.birthLng,
-            },
-            today,
-          ),
+        currentPeriod: dasha,
         generatedAt: existingReport.generatedAt?.toISOString() ?? null,
         dailyLoginBonusGranted: awarded,
       };
@@ -723,16 +717,26 @@ export async function dashboardToday(
 
     const color = colorOfTheDay(today);
     const chartDoc = await prisma.d1Chart.findUnique({ where: { userId } });
-    const chart = chartDoc ? decryptDict(chartDoc.chartEnc) : null;
-    const currentPeriodData = currentPeriod(
-      {
-        date: user.birthDate,
-        time: user.birthTime,
-        lat: user.birthLat,
-        lng: user.birthLng,
-      },
-      today,
-    );
+    if (!chartDoc) {
+      console.log(
+        "No birth chart found for user:",
+        userId,
+        "fetching from Astrology API",
+      );
+      await getBirthChart(req, res, next);
+    }
+
+    const chart = chartDoc ? chartDoc.chartEnc : null;
+
+    // const vimsottariDoc = await prisma.vimshotriDasha.findUnique({
+    //   where: { userId },
+    // });
+
+    // if (!vimsottariDoc) {
+    // console.log("No Vimshottari Dasha found for user:", userId, "fetching from Astrology API");
+    const dasha = await fetchVimshottariDashaForBirth({date: user.birthDate, time: user.birthTime, lat: user.birthLat, lng: user.birthLng}, req.body, userId);
+    console.log("Vimshottari Dasha fetched for user new request:", userId, "dasha:", dasha);
+    // }
     const daily = await generateDailyDescription(
       {
         id: user.id,
@@ -762,7 +766,7 @@ export async function dashboardToday(
         color: color as any,
         // choghadia: choghadia as any,
         // decisionWindows: decisionWindows as any,
-        currentPeriod: currentPeriodData as any,
+        currentPeriod: dasha as any,
         generatedAt: new Date(),
         updatedAt: new Date(),
       },
@@ -776,7 +780,6 @@ export async function dashboardToday(
       dayDescription: doc.dayDescription,
       color: doc.color,
       choghadia: doc.choghadia,
-      decisionWindows: doc.decisionWindows,
       currentPeriod: doc.currentPeriod,
       generatedAt: doc.generatedAt?.toISOString() ?? null,
       dailyLoginBonusGranted: awarded,
@@ -797,6 +800,7 @@ export async function getSoulPurpose(
       where: { id: userId },
     });
     if (existing) {
+      console.log("Returning cached soul purpose report for user:", userId);
       return res.json({
         id: existing.id,
         userId: existing.userId,
@@ -810,8 +814,15 @@ export async function getSoulPurpose(
       throw new AppError("User not found", 404);
     }
     const chartDoc = await prisma.d1Chart.findUnique({ where: { userId } });
-    const chart = chartDoc ? decryptDict(chartDoc.chartEnc) : null;
-    const content = await generateSoulReport(
+    console.log(
+      "Generating soul purpose report for user:",
+      userId,
+      "with chart :",
+      chartDoc,
+    );
+    const chart = chartDoc ? chartDoc.chartEnc : null;
+    console.log("Decrypted chart for user:", userId, "chart:", chart);
+    const content = await generateSoulReports(
       {
         id: user.id,
         name: user.name,
@@ -828,6 +839,7 @@ export async function getSoulPurpose(
       },
       chart,
     );
+
     const doc = await prisma.soulReport.create({
       data: {
         id: userId,
@@ -886,7 +898,7 @@ export async function getInnerProfile(
       throw new AppError("User not found", 404);
     }
     const chartDoc = await prisma.d1Chart.findUnique({ where: { userId } });
-    const chart = chartDoc ? decryptDict(chartDoc.chartEnc) : null;
+    const chart = chartDoc ? chartDoc.chartEnc : null;
     const content = await generateInnerProfile(
       {
         id: user.id,
@@ -1077,59 +1089,6 @@ export async function advisorHistory(
         ...item,
         createdAt: item.createdAt.toISOString(),
       })),
-    });
-  } catch (error) {
-    return next(error);
-  }
-}
-
-export async function listDecisions(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const items = await prisma.decision.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
-    return res.json({
-      items: items.map((item) => ({
-        ...item,
-        createdAt: item.createdAt.toISOString(),
-      })),
-    });
-  } catch (error) {
-    return next(error);
-  }
-}
-
-export async function logDecision(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const { title, context, decision } = req.body as {
-      title: string;
-      context?: string;
-      decision?: string;
-    };
-    const doc = await prisma.decision.create({
-      data: {
-        userId,
-        title: title.trim(),
-        context: context?.trim() ?? null,
-        decision: decision?.trim() ?? null,
-        createdAt: new Date(),
-      },
-    });
-    return res.json({
-      ...doc,
-      createdAt: doc.createdAt.toISOString(),
     });
   } catch (error) {
     return next(error);

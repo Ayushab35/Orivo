@@ -22,7 +22,8 @@ import { api } from "../../lib/api";
 import { cacheGet, cacheSet } from "../../lib/cache";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TODAY_KEY = (userId: string) => `dashboard.${userId}.${new Date().toISOString().slice(0, 10)}`;
+const TODAY_KEY = (userId: string) =>
+  `dashboard.${userId}.${new Date().toISOString().slice(0, 10)}`;
 const CHOGHADIA_KEY = () =>
   `choghadia.${new Date().toISOString().slice(0, 10)}`;
 const BIRTH_CHART_CACHE_KEY = (userId: string) => `orivo.birthChart.${userId}`;
@@ -105,10 +106,10 @@ export default function Dashboard() {
       }
       // Ensure we have a stored location; if not, ask for permission first
       const locRaw = await AsyncStorage.getItem("orivo.location");
-      
+
       const birthChartKey = user?.id
         ? `orivo.birthChart.${user.id}`
-        : 'orivo.birthChart';
+        : "orivo.birthChart";
       const chart = await AsyncStorage.getItem(birthChartKey);
       console.log("The chart is : {dashboard}", chart);
 
@@ -116,9 +117,9 @@ export default function Dashboard() {
         console.log("Birth chart error found, clearing cache");
         await AsyncStorage.removeItem(birthChartKey);
       }
-        //////////////////////////////////
+      //////////////////////////////////
 
-        console.log("locRaw", locRaw);
+      console.log("locRaw", locRaw);
       if (!locRaw) {
         router.push("/location-permission");
         return;
@@ -182,7 +183,7 @@ export default function Dashboard() {
   const onRefresh = async () => {
     setRefreshing(true);
     await load();
-    await preloadBirthChart(); 
+    await preloadBirthChart();
     setRefreshing(false);
   };
 
@@ -209,10 +210,7 @@ export default function Dashboard() {
         ? JSON.parse(storedProfileRaw)
         : null;
 
-      console.log(
-        "Preloading birth chart with stored profile:",
-        storedProfile,
-      );
+      console.log("Preloading birth chart with stored profile:", storedProfile);
 
       const payload: Record<string, any> = {};
 
@@ -221,11 +219,7 @@ export default function Dashboard() {
           .split("-")
           .map((v: string) => Number(v));
 
-        if (
-          !Number.isNaN(year) &&
-          !Number.isNaN(month) &&
-          !Number.isNaN(day)
-        ) {
+        if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
           payload.day = day;
           payload.month = month;
           payload.year = year;
@@ -258,7 +252,7 @@ export default function Dashboard() {
 
       await AsyncStorage.setItem(birthChartKey, JSON.stringify(chart));
     } catch (error) {
-      console.error("Birth chart preload failed:", error);
+      console.warn("Birth chart preload failed: in dashboard useEffect", error);
 
       await AsyncStorage.setItem(
         BIRTH_CHART_CACHE_KEY(user.id),
@@ -268,7 +262,7 @@ export default function Dashboard() {
         }),
       );
     }
-  }
+  };
 
   const dateObj = data?.date ? new Date(data.date) : new Date();
   const dayName =
@@ -646,7 +640,7 @@ export default function Dashboard() {
 
             <FadeInUp index={4} style={{ marginTop: 14 }}>
               <CurrentPeriodCard
-                period={data.currentPeriod}
+                period={data.currentPeriod.dasha}
                 testID="current-period-card"
               />
             </FadeInUp>
@@ -667,9 +661,52 @@ function CurrentPeriodCard({
   testID?: string;
 }) {
   const { c } = useTheme();
-  const coveredPct = period?.totalDays
-    ? Math.round((period.coveredDays / period.totalDays) * 100)
+
+  const minor = period?.minor;
+
+  const parseDashaDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+
+    const [datePart, timePart] = dateStr.trim().split(/\s+/);
+
+    if (!datePart || !timePart) return null;
+
+    const [day, month, year] = datePart.split("-").map(Number);
+    const [hour, minute] = timePart.split(":").map(Number);
+
+    return new Date(year, month - 1, day, hour, minute);
+  };
+
+  const startDate = parseDashaDate(minor?.start);
+  const endDate = parseDashaDate(minor?.end);
+  const now = new Date();
+
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+  const totalDays =
+    startDate && endDate
+      ? Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY)
+      : 0;
+
+  const coveredDays = startDate
+    ? Math.max(
+        0,
+        Math.min(
+          totalDays,
+          Math.floor((now.getTime() - startDate.getTime()) / MS_PER_DAY),
+        ),
+      )
     : 0;
+
+  const remainingDays = endDate
+    ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / MS_PER_DAY))
+    : 0;
+
+  const coveredPct =
+    totalDays > 0
+      ? Math.min(100, Math.round((coveredDays / totalDays) * 100))
+      : 0;
+
   return (
     <View
       testID={testID}
@@ -689,56 +726,73 @@ function CurrentPeriodCard({
           marginBottom: 14,
         }}
       >
-        <View>
+        <View style={{ flex: 1 }}>
           <Kicker>CURRENT PERIOD</Kicker>
-          <Text
-            style={{
-              color: c.textPrimary,
-              fontFamily: fontFamily.display,
-              fontSize: 20,
-              fontWeight: "500",
-              marginTop: 4,
-            }}
-          >
-            {period?.start
-              ? new Date(period.start).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })
-              : "—"}{" "}
-            —{" "}
-            {period?.end
-              ? new Date(period.end).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })
-              : "—"}
-          </Text>
         </View>
+
         <Text
           style={{
             color: c.textSecondary,
             fontSize: 11,
-            letterSpacing: 1.4,
+            letterSpacing: 1.2,
             textTransform: "uppercase",
+            marginLeft: 12,
           }}
         >
-          {period?.coveredDays ?? 0}/{period?.totalDays ?? 0} days covered
+          {coveredDays}/{totalDays} days covered
         </Text>
       </View>
 
-      {period?.summary ? (
+      <View>
+        <Text
+          style={{
+            color: c.textPrimary,
+            fontFamily: fontFamily.display,
+            fontSize: 20,
+            fontWeight: "500",
+            // marginTop: 4,
+          }}
+        >
+          {minor?.planet ?? "—"} Antardasha
+        </Text>
+
         <Text
           style={{
             color: c.textSecondary,
             fontSize: 13,
-            lineHeight: 20,
-            marginBottom: 16,
+            marginTop: 4,
           }}
         >
-          {period.summary}
+          {startDate
+            ? startDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "—"}
+          {" — "}
+          {endDate
+            ? endDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "—"}
         </Text>
-      ) : null}
+      </View>
+
+      <Text
+        style={{
+          color: c.textSecondary,
+          fontSize: 13,
+          lineHeight: 20,
+          marginBottom: 16,
+        }}
+      >
+        {minor?.planet
+          ? `${minor.planet} Antardasha within ${period?.major?.planet ?? ""} Mahadasha`
+          : "Current planetary period"}
+      </Text>
 
       <View
         style={{
@@ -767,8 +821,9 @@ function CurrentPeriodCard({
         <Text style={{ color: c.textMuted, fontSize: 11 }}>
           {coveredPct}% complete
         </Text>
+
         <Text style={{ color: c.textMuted, fontSize: 11 }}>
-          {period?.remainingDays ?? 0} days left
+          {remainingDays} days left
         </Text>
       </View>
     </View>

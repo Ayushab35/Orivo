@@ -27,8 +27,6 @@ import {
   advisorChat,
   advisorSessions,
   advisorHistory,
-  listDecisions,
-  logDecision,
   getRoleFit,
 } from "../controllers/userController";
 import {
@@ -38,7 +36,6 @@ import {
   taskCompleteSchema,
   personalityQuizSchema,
   advisorChatSchema,
-  decisionSchema,
 } from "../schemas/user";
 
 const router = Router();
@@ -98,13 +95,6 @@ router.post(
 );
 router.get("/advisor/sessions", requireAuth, advisorSessions);
 router.get("/advisor/history", requireAuth, advisorHistory);
-router.get("/decisions", requireAuth, listDecisions);
-router.post(
-  "/decisions",
-  requireAuth,
-  validateBody(decisionSchema),
-  logDecision,
-);
 router.get("/role-fit", requireAuth, getRoleFit);
 
 export default router;

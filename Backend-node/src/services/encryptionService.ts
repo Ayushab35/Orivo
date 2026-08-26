@@ -6,10 +6,25 @@ const keys = rawKey
   .map((value) => value.trim())
   .filter(Boolean);
 
+function normalizeEncryptionKey(key: string): Buffer {
+  const base64Key = Buffer.from(key, "base64");
+  if (base64Key.length === 32) {
+    return base64Key;
+  }
+
+  const utf8Key = Buffer.from(key, "utf8");
+  if (utf8Key.length === 32) {
+    return utf8Key;
+  }
+
+  throw new Error("FIELD_ENCRYPTION_KEY must be 32 bytes raw or a 32-byte base64 value.");
+}
+
 const fernetKeys = keys
   .map((key) => {
     try {
-      return crypto.createSecretKey(Buffer.from(key, "utf8"));
+      const normalizedKey = normalizeEncryptionKey(key);
+      return crypto.createSecretKey(normalizedKey);
     } catch {
       return null;
     }

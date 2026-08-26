@@ -1,38 +1,50 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, Share, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../lib/themeContext';
-import { fontFamily, radii } from '../../lib/theme';
-import { Kicker, FlatCard, Disclaimer } from '../../components/UI';
-import { TierBadge } from '../../components/Badges';
-import { useAuth } from '../../lib/auth';
-import { api } from '../../lib/api';
+import React, { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Switch,
+  Share,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../lib/themeContext";
+import { fontFamily, radii } from "../../lib/theme";
+import { Kicker, FlatCard, Disclaimer } from "../../components/UI";
+import { TierBadge } from "../../components/Badges";
+import { useAuth } from "../../lib/auth";
+import { api } from "../../lib/api";
 
 export default function Profile() {
   const { c, theme, toggleTheme } = useTheme();
   const router = useRouter();
   const { user, creditsBalanceSec, signOut } = useAuth();
   const [ledger, setLedger] = useState<any[]>([]);
-  const [section, setSection] = useState<'identity' | 'preferences' | 'membership' | 'legal'>('identity');
+  const [section, setSection] = useState<
+    "identity" | "preferences" | "membership" | "legal"
+  >("identity");
 
-  useFocusEffect(useCallback(() => {
-    (async () => {
-      try {
-        const l = await api.get("/credits/ledger");
-        setLedger(l.items || []);
-      } catch {}
-    })();
-  }, []));
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          const l = await api.get("/credits/ledger");
+          setLedger(l.items || []);
+        } catch {}
+      })();
+    }, []),
+  );
 
   const referralShare = async () => {
     try {
       const url = `Join me on Orivo — private decision intelligence for founders. Use code ${user?.referralCode} to claim 10 bonus minutes.`;
       // @ts-ignore
-      if (typeof navigator !== 'undefined' && navigator.share) {
+      if (typeof navigator !== "undefined" && navigator.share) {
         // @ts-ignore
-        await navigator.share({ title: 'Orivo', text: url });
+        await navigator.share({ title: "Orivo", text: url });
       } else {
         await Share.share({ message: url });
       }
@@ -156,7 +168,7 @@ export default function Profile() {
               />
               <RowSwitch
                 label="Notifications"
-                value={true}
+                value={false}
                 onChange={() => {}}
                 hint="Daily brief and peak window reminders."
                 last
@@ -465,53 +477,139 @@ export default function Profile() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   const { c } = useTheme();
   return (
     <View style={{ marginBottom: 14 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 10,
+        }}
+      >
         <Kicker>{title}</Kicker>
         <View style={{ flex: 1, height: 1, backgroundColor: c.border }} />
       </View>
-      <View style={{ backgroundColor: c.surface, borderRadius: radii.md, borderColor: c.border, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 }}>{children}</View>
-    </View>
-  );
-}
-
-function Row({ label, value, last, valueColor }: { label: string; value: string; last?: boolean; valueColor?: string }) {
-  const { c } = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: last ? 0 : 1, borderColor: c.border }}>
-      <Text style={{ color: c.textSecondary, fontSize: 12 }}>{label}</Text>
-      <Text style={{ color: valueColor || c.textPrimary, fontSize: 13, fontWeight: '500' }}>{value}</Text>
-    </View>
-  );
-}
-
-function RowSwitch({ label, value, onChange, hint, last, testID }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string; last?: boolean; testID?: string }) {
-  const { c } = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: last ? 0 : 1, borderColor: c.border }}>
-      <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={{ color: c.textPrimary, fontSize: 13, fontWeight: '500' }}>{label}</Text>
-        {hint ? <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>{hint}</Text> : null}
+      <View
+        style={{
+          backgroundColor: c.surface,
+          borderRadius: radii.md,
+          borderColor: c.border,
+          borderWidth: 1,
+          paddingHorizontal: 14,
+          paddingVertical: 6,
+        }}
+      >
+        {children}
       </View>
-      <Switch testID={testID} value={value} onValueChange={onChange} trackColor={{ false: c.border, true: c.gold }} thumbColor={c.surface} />
+    </View>
+  );
+}
+
+function Row({
+  label,
+  value,
+  last,
+  valueColor,
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+  valueColor?: string;
+}) {
+  const { c } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderColor: c.border,
+      }}
+    >
+      <Text style={{ color: c.textSecondary, fontSize: 12 }}>{label}</Text>
+      <Text
+        style={{
+          color: valueColor || c.textPrimary,
+          fontSize: 13,
+          fontWeight: "500",
+        }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+function RowSwitch({
+  label,
+  value,
+  onChange,
+  hint,
+  last,
+  testID,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  hint?: string;
+  last?: boolean;
+  testID?: string;
+}) {
+  const { c } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: 12,
+        borderBottomWidth: last ? 0 : 1,
+        borderColor: c.border,
+      }}
+    >
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={{ color: c.textPrimary, fontSize: 13, fontWeight: "500" }}>
+          {label}
+        </Text>
+        {hint ? (
+          <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+      <Switch
+        testID={testID}
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: c.border, true: c.gold }}
+        thumbColor={c.surface}
+      />
     </View>
   );
 }
 
 function prettyReason(r: string) {
   const map: Record<string, string> = {
-    welcome: 'Welcome credit',
-    'task:daily_checkin': 'Daily Brief reviewed',
-    'task:complete_personality': 'Leadership Assessment completed',
-    'task:open_numerology': 'Numerical Intelligence reviewed',
-    'task:log_decision': 'Decision logged',
-    'task:share_referral': 'Referral shared',
+    welcome: "Welcome credit",
+    "task:daily_checkin": "Daily Brief reviewed",
+    "task:complete_personality": "Leadership Assessment completed",
+    "task:open_numerology": "Numerical Intelligence reviewed",
+    "task:log_decision": "Decision logged",
+    "task:share_referral": "Referral shared",
   };
   if (map[r]) return map[r];
-  if (r.startsWith('purchase:')) return 'Private minutes purchased';
-  if (r.startsWith('booking:')) return 'Private Consultation';
+  if (r.startsWith("purchase:")) return "Private minutes purchased";
+  if (r.startsWith("booking:")) return "Private Consultation";
   return r;
 }

@@ -1,4 +1,6 @@
 import { LLMClient } from "./llmClient";
+import { generateSoulReport } from "../reports/soulReport/index";
+
 
 const DAILY_BRIEF_FALLBACK = {
   description:
@@ -113,11 +115,20 @@ export async function generateDailyDescription(
   };
 }
 
-export async function generateSoulReport(user: any, chart: any) {
+export async function generateSoulReports(user: any, chart: any) {
   const client = new LLMClient();
   if (!client.available) {
+    console.log("LLM client not available, returning fallback soul report for user:", user.id);
     return SOUL_FALLBACK;
   }
+
+  console.log("The chart is : {}", chart);
+
+  console.log("Generating soul report for user:", user.id, "with chart provider:", chart);
+
+  const report = await generateSoulReport(user, chart);
+
+  console.log("Generated soul report:", report);
   
   const prompt = `${profileBlurb(user, chart)}\n\nGenerate the 'Soul Purpose & Potential Profession' report. Output must exactly match JSON keys: soulPurpose, purposeThemes, primaryProfession, alternativeProfessions, avoidProfessions, reasoning, signals.`;
   const resp = await client.generateJson(

@@ -25,10 +25,10 @@ export default function Verify() {
   const code = otp.join("");
 
   const verify = async () => {
-    if (code.length !== 6) {
-      setErr("Please enter the 6-digit code.");
-      return;
-    }
+    // if (code.length !== 6) {
+    //   setErr("Please enter the 6-digit code.");
+    //   return;
+    // }
 
     setErr("");
     setLoading(true);

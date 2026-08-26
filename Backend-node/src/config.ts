@@ -29,4 +29,8 @@ export const config = {
   llmDefaultProvider: (
     process.env.LLM_DEFAULT_PROVIDER ?? "anthropic"
   ).toLowerCase(),
+  llmModel: process.env.LLM_MODEL ?? "",
+  anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
 };
