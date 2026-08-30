@@ -640,7 +640,7 @@ export default function Dashboard() {
 
             <FadeInUp index={4} style={{ marginTop: 14 }}>
               <CurrentPeriodCard
-                period={data.currentPeriod.dasha}
+                period={data.currentPeriod?.dasha}
                 testID="current-period-card"
               />
             </FadeInUp>

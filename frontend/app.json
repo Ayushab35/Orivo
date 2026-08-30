@@ -7,10 +7,24 @@
     "userInterfaceStyle": "automatic",
     "scheme": "orivo",
     "newArchEnabled": false,
-    "ios": { "supportsTablet": true, "bundleIdentifier": "app.orivo.mobile" },
-    "android": { "package": "app.orivo.mobile" },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": false }
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.orivo.mobile"
+    },
+    "android": {
+      "package": "app.orivo.mobile"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-community/datetimepicker",
+      "expo-audio"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }
