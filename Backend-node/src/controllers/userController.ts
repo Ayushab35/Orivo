@@ -821,7 +821,6 @@ export async function getSoulPurpose(
       chartDoc,
     );
     const chart = chartDoc ? chartDoc.chartEnc : null;
-    console.log("Decrypted chart for user:", userId, "chart:", chart);
     const content = await generateSoulReports(
       {
         id: user.id,

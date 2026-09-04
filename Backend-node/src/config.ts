@@ -27,10 +27,10 @@ export const config = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   llmDefaultProvider: (
-    process.env.LLM_DEFAULT_PROVIDER ?? "anthropic"
+    process.env.LLM_DEFAULT_PROVIDER ?? "gemini"
   ).toLowerCase(),
-  llmModel: process.env.LLM_MODEL ?? "",
+  llmModel: process.env.LLM_MODEL ?? "gemini-3.5-flash-lite",
   anthropicModel: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite",
 };

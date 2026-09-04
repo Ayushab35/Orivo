@@ -115,6 +115,7 @@ export class LLMClient {
     maxTokens = 800,
   ): Promise<LLMTextResponse | null> {
     if (!this.available) {
+      console.warn("LLM client unavailable: no API key configured for provider:", this.provider, "model:", this.model, "key", this.apiKey);
       return null;
     }
 
@@ -128,6 +129,7 @@ export class LLMClient {
           return await this.generateWithAnthropic(system, messages, maxTokens);
       }
     } catch {
+      console.warn("Error occurred while generating with provider:", this.provider, "model:", this.model);
       return null;
     }
   }
@@ -139,7 +141,7 @@ export class LLMClient {
     maxTokens = 1200,
   ): Promise<T | null> {
     const response = await this.generate(system, messages, maxTokens);
-
+    console.log("LLM JSON generation response:", response);
     if (!response) {
       return null;
     }
@@ -199,13 +201,14 @@ export class LLMClient {
     system: string,
     messages: LLMMessage[],
   ): Promise<LLMTextResponse> {
+    console.log("Generating with Gemini model:", this.model, "system prompt:", system, "messages:", messages);
     const client = new GoogleGenerativeAI(this.apiKey);
     const model = client.getGenerativeModel({
       model: this.model,
       systemInstruction: system,
     });
     const response = await model.generateContent(formatPrompt("", messages));
-
+  
     return {
       text: response.response.text().trim(),
       provider: this.provider,

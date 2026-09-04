@@ -497,18 +497,7 @@ export async function fetchVimshottariDashaForBirth(
   // ---------------------------------------------------------
   // Optional logging for debugging
   // ---------------------------------------------------------
-  console.log("Vimshottari Dasha Relationship:", {
-    major: major?.planet,
-    majorPlanetId: major?.planet_id,
-    majorHouse: majorPlanet?.house,
-
-    minor: minor?.planet,
-    minorPlanetId: minor?.planet_id,
-    minorHouse: minorPlanet?.house,
-
-    relationship,
-  });
-
+  
   // ---------------------------------------------------------
   // Store dasha + relationship
   // ---------------------------------------------------------

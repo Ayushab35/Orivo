@@ -137,26 +137,17 @@ export async function generateSoulReport(
   }
 
   const atmakaraka = calculateAtmakaraka(chart);
-  console.log("Atmakaraka calculation result:", atmakaraka);
   const aspectingPlanets = getAspectingPlanets(chart, 10);
-  console.log("Aspecting planets calculation result:", aspectingPlanets);
   const aspectMeanings = combineAspectMeanings(aspectingPlanets);
-  console.log("Combined aspect meanings:", aspectMeanings);
   const aspects = {
     aspectingPlanets,
     meanings: aspectMeanings.meanings,
   };
-  console.log("Aspects calculation result:", aspects);
   const tenthHouse = analyseTenthHouse(chart);
-  console.log("Tenth house analysis result:", tenthHouse);
   const profession = analyseProfession(atmakaraka, tenthHouse, aspects);
-  console.log("Profession analysis result:", profession);
   const arudhaLagna = calculateArudhaLagna(chart);
-  console.log("Arudha Lagna calculation result:", arudhaLagna);
   const fallback = createFallbackReport(profession, arudhaLagna.publicTraits);
-  console.log("Deterministic fallback report:", fallback);
   const prompt = buildSoulPrompt(user, atmakaraka, profession, arudhaLagna);
-  console.log("LLM prompt for soul report generation:", prompt);
   const client = new LLMClient();
 
   if (!client.available) {

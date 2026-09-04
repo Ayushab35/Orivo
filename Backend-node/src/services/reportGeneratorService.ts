@@ -84,7 +84,7 @@ const INNER_PROFILE_FALLBACK = {
 function profileBlurb(user: any, chart: any) {
   const birth = user?.birth || {};
   const chartHint = chart
-    ? ` Chart source: ${chart.provider ?? "unknown"}.`
+    ? ` Chart source: ${chart.toString?.() ?? "unknown"}.`
     : "";
   return `Name: ${user?.name ?? "—"}; Role: ${user?.role ?? "—"}; Business: ${user?.businessName ?? "—"} (${user?.industry ?? "—"}); Birth: ${birth.date ?? "—"} ${birth.time ?? "—"} at ${birth.placeName ?? "—"}.${chartHint}`;
 }
@@ -122,21 +122,17 @@ export async function generateSoulReports(user: any, chart: any) {
     return SOUL_FALLBACK;
   }
 
-  console.log("The chart is : {}", chart);
-
-  console.log("Generating soul report for user:", user.id, "with chart provider:", chart);
-
   const report = await generateSoulReport(user, chart);
 
   console.log("Generated soul report:", report);
   
-  const prompt = `${profileBlurb(user, chart)}\n\nGenerate the 'Soul Purpose & Potential Profession' report. Output must exactly match JSON keys: soulPurpose, purposeThemes, primaryProfession, alternativeProfessions, avoidProfessions, reasoning, signals.`;
+  // const prompt = `${profileBlurb(user, report)}\n\nGenerate the 'Soul Purpose & Potential Profession' report. Output must exactly match JSON keys: soulPurpose, purposeThemes, primaryProfession, alternativeProfessions, avoidProfessions, reasoning, signals.`;
   const resp = await client.generateJson(
     "You are an executive advisor writing for a C-suite founder. Tone: private-banking + McKinsey. Translate underlying astrological signals into calm business language. Forbidden vocabulary: horoscope, zodiac, planet names, dasha, nakshatra, yoga, transit, lucky, mystical, spiritual. Every output must be strict JSON.",
-    [{ role: "user", content: prompt }],
+    [{ role: "user", content: report.toString() + "\n\n" + "Give me the soul purpose report based on the above information. I want you to send strictly JSON output. Just use the information and phrase it in a professional manner." }],
     1500,
   );
-  return resp && resp.soulPurpose ? resp : SOUL_FALLBACK;
+  return resp ? resp : SOUL_FALLBACK;
 }
 
 export async function generateInnerProfile(user: any, chart: any) {
