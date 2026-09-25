@@ -11,11 +11,10 @@ import {
   generateSoulReports,
   generateInnerProfile,
 } from "../services/reportGeneratorService";
-import { advisorReply } from "../services/advisorService";
+import { chatbotService } from "../chatbot/chatbot.service";
 import { AppError } from "../errors/AppError";
 import { config } from "../config";
-import { numerologyProfile } from "../utils/astrology";
-import { colorOfTheDay } from "../utils/choghadia";
+import { colorOfTheDay } from "../reports/soulReport/utils/choghadia";
 import { computeRoleFit } from "../utils/role_fit";
 import { PACKAGES } from "../seed_data";
 import {
@@ -226,23 +225,6 @@ export async function submitPersonalityQuiz(
     });
     await userService.maybeCompleteTask(userId, "complete_personality");
     return res.json(result);
-  } catch (error) {
-    return next(error);
-  }
-}
-
-export async function numerology(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
-  try {
-    const userId = (req as any).userId as string;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.birthDate) {
-      throw new AppError("Birth date required", 400);
-    }
-    return res.json(numerologyProfile(user.birthDate));
   } catch (error) {
     return next(error);
   }
@@ -698,8 +680,22 @@ export async function dashboardToday(
     });
 
     if (existingReport) {
-      const dasha = await fetchVimshottariDashaForBirth({date: user.birthDate, time: user.birthTime, lat: user.birthLat, lng: user.birthLng}, req.body, userId);
-      console.log("Vimshottari Dasha fetched for user:", userId, "dasha:", dasha);
+      const dasha = await fetchVimshottariDashaForBirth(
+        {
+          date: user.birthDate,
+          time: user.birthTime,
+          lat: user.birthLat,
+          lng: user.birthLng,
+        },
+        req.body,
+        userId,
+      );
+      console.log(
+        "Vimshottari Dasha fetched for user:",
+        userId,
+        "dasha:",
+        dasha,
+      );
       const result = {
         id: existingReport.id,
         userId: existingReport.userId,
@@ -734,8 +730,22 @@ export async function dashboardToday(
 
     // if (!vimsottariDoc) {
     // console.log("No Vimshottari Dasha found for user:", userId, "fetching from Astrology API");
-    const dasha = await fetchVimshottariDashaForBirth({date: user.birthDate, time: user.birthTime, lat: user.birthLat, lng: user.birthLng}, req.body, userId);
-    console.log("Vimshottari Dasha fetched for user new request:", userId, "dasha:", dasha);
+    const dasha = await fetchVimshottariDashaForBirth(
+      {
+        date: user.birthDate,
+        time: user.birthTime,
+        lat: user.birthLat,
+        lng: user.birthLng,
+      },
+      req.body,
+      userId,
+    );
+    console.log(
+      "Vimshottari Dasha fetched for user new request:",
+      userId,
+      "dasha:",
+      dasha,
+    );
     // }
     const daily = await generateDailyDescription(
       {
@@ -986,24 +996,27 @@ export async function advisorChat(
         createdAt: new Date(),
       },
     });
-    const reply = await advisorReply(
-      {
-        id: user.id,
-        name: user.name,
-        role: user.role,
-        businessName: user.businessName,
-        industry: user.industry,
-        birth: {
-          date: user.birthDate,
-          time: user.birthTime,
-          placeName: user.birthPlace,
-          lat: user.birthLat,
-          lng: user.birthLng,
-        },
-      },
-      formatted,
-      message.trim(),
-    );
+    // const reply = await advisorReply(
+    //   {
+    //     id: user.id,
+    //     name: user.name,
+    //     role: user.role,
+    //     businessName: user.businessName,
+    //     industry: user.industry,
+    //     birth: {
+    //       date: user.birthDate,
+    //       time: user.birthTime,
+    //       placeName: user.birthPlace,
+    //       lat: user.birthLat,
+    //       lng: user.birthLng,
+    //     },
+    //   },
+    //   formatted,
+    //   message.trim(),
+    // );
+    const chartDoc = await prisma.d1Chart.findUnique({ where: { userId } });
+    const chart = chartDoc ? chartDoc.chartEnc : null;
+    const reply = await chatbotService.handleQuery(message, chart);
     const asstMsg = await prisma.advisorMessage.create({
       data: {
         userId,

@@ -115,7 +115,7 @@ model AdvisorMessage {
   userId    String
   sessionId String
   role      String
-  content   String
+  content   Json
   createdAt DateTime @default(now())
 
   @@index([sessionId])
@@ -123,7 +123,7 @@ model AdvisorMessage {
 
 model AdvisorSession {
   id         String   @id @map("_id") @default(auto()) @db.ObjectId
-  userId     String
+  userId     String23
   title      String
   lastMessage String
   updatedAt  DateTime @default(now())

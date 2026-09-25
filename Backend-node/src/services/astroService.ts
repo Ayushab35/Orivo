@@ -2,7 +2,7 @@ import axios from "axios";
 import { Prisma } from "@prisma/client";
 import prisma from "../prisma/client";
 import { config } from "../config";
-import { computeChoghadia } from "../utils/choghadia";
+import { computeChoghadia } from "../reports/soulReport/utils/choghadia";
 
 export interface GetChoghadiaParams {
   userId: string;
